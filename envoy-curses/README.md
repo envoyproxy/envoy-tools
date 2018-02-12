@@ -63,3 +63,9 @@ No interaction is possible. View the available data, or move to another screen.
 
 ![Stats View](stats-view.png)
   
+# Beta Readiness
+
+Known issues currently include
+
+* a lack of tests
+* support for handling timeouts/network errors when polling the admin server
