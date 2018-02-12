@@ -32,7 +32,7 @@ memory is not free, and in this program, not carefully monitored).
 
 # Usage
 
-* This isn't an escape room. Quit with ctl-c.
+* This isn't an escape room. Quit with ctrl-c.
 * The app is organized into three views.
 ** The Server view shows stats about the Envoy process itself
 ** The Cluster view shows information about configured clusters.
@@ -57,7 +57,7 @@ No interaction is possible. View the available data, or move to another screen.
 ## Stats
 
 * type characters to filter stat names. Use up/down arrows to select stat to
-  chart
+  chart. Regexes work as well.
 * backspace clears a single character from your filter
 * escape will clear them all
 
