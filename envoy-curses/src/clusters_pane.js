@@ -20,7 +20,7 @@ class ClustersPane extends Box {
     this.availableStats = []
     this.selectedClusterName = ''
     this.tableData = {
-      headers: ['cluster', 'cx act', 'rq act', 'rq total', 'members', 'healthy'],
+      headers: ['cluster', 'members', 'healthy', 'cx act', 'rq act', 'rq_total'],
       data: [],
     }
 
@@ -137,6 +137,10 @@ class ClustersPane extends Box {
   selectStat(s) {
     if (s) {
       this.chartedStat = s
+      // all stats we care about here are prefixed with 'upstream_'
+      // so we can do substring(9) to get a short name as table header
+      const shortName = s.substring(s.substring(9))
+      this.tableData.headers[this.tableData.headers.length - 1] = shortName
       this.updateAvailableStats()
     }
   }
@@ -150,8 +154,13 @@ class ClustersPane extends Box {
     const newStats = new Set()
     for (let i = 0; i < hostNames.length; i++) {
       if (!this.clusterLevelStats.has(hostNames[i])) {
+        // filter stats by the numeric ones that have an equivalent under the /stats call
+        // so we can show an aggregate value in the table
         this.clusters.getStatNames(this.selectedClusterName, hostNames[i]).forEach(s => {
-          newStats.add(s)
+          const currentValue = this.stats.getCurrentStatValue(`cluster.${this.selectedClusterName}.upstream_${s}`)
+          if (Number.isFinite(currentValue)) {
+            newStats.add(s)
+          }
         })
       }
     }
@@ -179,10 +188,10 @@ class ClustersPane extends Box {
       }
       row.push(c)
       row.push(this.stats.getCurrentStatValue(`cluster.${c}.upstream_cx_active`))
-      row.push(this.stats.getCurrentStatValue(`cluster.${c}.upstream_rq_active`))
-      row.push(this.stats.getCurrentStatValue(`cluster.${c}.upstream_rq_total`))
       row.push(this.stats.getCurrentStatValue(`cluster.${c}.membership_total`))
       row.push(this.stats.getCurrentStatValue(`cluster.${c}.membership_healthy`))
+      row.push(this.stats.getCurrentStatValue(`cluster.${c}.upstream_rq_active`))
+      row.push(this.stats.getCurrentStatValue(`cluster.${c}.upstream_${this.chartedStat}`))
       return row
     })
     this.tableData.data = newTableData
