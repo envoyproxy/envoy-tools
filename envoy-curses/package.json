@@ -1,0 +1,30 @@
+{
+  "name": "envoy-curses",
+  "description": "Envoy management UI",
+  "version": "0.1.0",
+  "scripts": {
+    "test": "./node_modules/.bin/jest",
+    "lint": "eslint -c .eslintrc.js --ext .js ./src ./test",
+    "lint:fix": "eslint --fix -c .eslintrc.js --ext .js ./src ./test"
+  },
+  "author": "mccv@turbinelabs.io",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.8.5",
+    "dateformat": "^3.0.2",
+    "node-fetch": "^1.7.3",
+    "simple-node-logger": "^0.93.33"
+  },
+  "devDependencies": {
+    "babel-eslint": "^7.2.3",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-register": "^6.26.0",
+    "eslint": "^4.5.0",
+    "eslint-config-prettier": "^2.3.0",
+    "eslint-plugin-jest": "^20.0.3",
+    "eslint-plugin-prettier": "^2.2.0",
+    "jest": "^20.0.4",
+    "prettier": "^1.6.1"
+  }
+}
