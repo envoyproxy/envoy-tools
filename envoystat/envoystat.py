@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+from collections import defaultdict
 import datetime
 import sys
 import signal
@@ -11,12 +12,13 @@ import urlparse
 GAUGE_NOTATION = "-"
 TIMEOUT_SECONDS = 0.1
 
-SHOULD_QUIT = False
+should_quit = False
 
 
 def signal_handler(signal, frame):
-    global SHOULD_QUIT
-    SHOULD_QUIT = True
+    global should_quit
+    should_quit = True
+
 
 def main(args):
     signal.signal(signal.SIGINT, signal_handler)
@@ -29,7 +31,7 @@ def main(args):
 
     i = 0
     data_prev, data_now = None, None
-    while not SHOULD_QUIT:
+    while not should_quit:
         loop_start = time.time()
         if i == 0:
             print ts(), formatter.format(*header)
@@ -43,6 +45,8 @@ def main(args):
             values = []
             for field in args['fields']:
                 final_name = '{}{}'.format(args['prefix'], field.strip(GAUGE_NOTATION))
+                if final_name not in data_now:
+                    values.append('-')
                 if field.endswith(GAUGE_NOTATION):
                     values.append(data_now[final_name])
                 else:
@@ -57,7 +61,6 @@ def main(args):
         i = (i + 1) % 25
 
     # TODO(danielhochman): print a summary
-    print '\r'
     print
 
 def request(host, path):
@@ -67,11 +70,15 @@ def request(host, path):
     )
 
 def get_stats(host):
-    results = {}
+    results = defaultdict(int)
     data = request(host, '/stats').readlines()
     for line in data:
         key, value = line.strip().split(': ')
-        results[key] = int(value)
+        try:
+            results[key] = int(value)
+        except ValueError:
+            # ignore unparseable values (currently this is only histogram output)
+            pass
     return results
 
 if __name__ == '__main__':
@@ -81,7 +88,7 @@ if __name__ == '__main__':
         help="URI to Envoy admin with access to /stats, including scheme",
     )
     parser.add_argument(
-        '-p', '--prefix', default='http.ingress_http.downstream_',
+        '-p', '--prefix', default='',
         help="Prefix for all requested stats",
     )
     parser.add_argument(
@@ -89,7 +96,8 @@ if __name__ == '__main__':
         help="Interval in seconds",
     )
     parser.add_argument(
-        '-f', '--fields', default="cx_active- rq_active- rq_2xx rq_4xx rq_5xx rq_total".split(),
+        '-f', '--fields',
+        required=True,
         nargs='*',
         help="field names, excluding the prefix",
     )

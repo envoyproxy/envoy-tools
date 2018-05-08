@@ -37,7 +37,7 @@ will be a Python module installable via pip.
 > Admin URI. The script will request the `/stats` endpoint from this URI. Defaults to `http://localhost:9901`.
 
 `-p, --prefix`
-> Prefix for all given fields. The field names will be appended to the prefix. Defaults to `http.ingress_http.downstream_`.
+> Prefix for all given fields. The field names will be appended to the prefix. Defaults to an empty string.
 
 `-f, --fields`
 > List of fields for the given prefix. The field names will be appended to the prefix and used for header display.
@@ -65,7 +65,8 @@ then list the fields you want see on a per-interval basis. If we're interested i
 `http.ingress_http.downstream_rq_2xx` and `http.ingress_http.downstream_rq_5xx`, add
 `-f rq_2xx rq_5xx`. This results in
 
-```$ python envoystat.py -p http.ingress_http.downstream_ -f rq_2xx rq_5xx
+```
+$ python envoystat.py -p http.ingress_http.downstream_ -f rq_2xx rq_5xx
 2018/04/04 envoy 19745a5e3d267b8621f6b0740250bbe04af3fadc/1.7.0-dev/Clean/RELEASE live 69245 69245 0
 
 04:43:39 PM     rq_2xx     rq_5xx
