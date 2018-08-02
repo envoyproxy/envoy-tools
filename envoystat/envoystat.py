@@ -1,13 +1,21 @@
 #!/usr/bin/env python
+from __future__ import print_function
+
 import argparse
 from collections import defaultdict
 import datetime
 import sys
 import signal
 import time
-import urllib2
-import urlparse
 
+try:
+    from urllib2 import urlopen
+except:
+    from urllib.request import urlopen
+try:
+    from urlparse import urljoin
+except:
+    from urllib.parse import urljoin
 
 GAUGE_NOTATION = "-"
 TIMEOUT_SECONDS = 0.1
@@ -23,8 +31,8 @@ def signal_handler(signal, frame):
 def main(args):
     signal.signal(signal.SIGINT, signal_handler)
 
-    print datetime.datetime.now().strftime('%Y/%m/%d'), request(args['admin'], '/server_info').read()
-    
+    print(datetime.datetime.now().strftime('%Y/%m/%d'), request(args['admin'], '/server_info').read())
+
     header = args['fields']
     formatter = ' '.join('{: >10}' for i in range(len(header)))
     ts = lambda: datetime.datetime.now().strftime('%I:%M:%S %p')
@@ -34,7 +42,7 @@ def main(args):
     while not should_quit:
         loop_start = time.time()
         if i == 0:
-            print ts(), formatter.format(*header)
+            print(ts(), formatter.format(*header))
 
         if data_prev is None:
             data_prev = get_stats(args['admin'])
@@ -51,7 +59,7 @@ def main(args):
                     values.append(data_now[final_name])
                 else:
                     values.append(data_now[final_name] - data_prev[final_name])
-            print ts(), formatter.format(*values)
+            print(ts(), formatter.format(*values))
             data_prev = data_now
 
         next_loop_delay = args['interval'] - (time.time() - loop_start)
@@ -61,11 +69,11 @@ def main(args):
         i = (i + 1) % 25
 
     # TODO(danielhochman): print a summary
-    print
+    print()
 
 def request(host, path):
-    return urllib2.urlopen(
-        urlparse.urljoin(host, path),
+    return urlopen(
+        urljoin(host, path),
         timeout=TIMEOUT_SECONDS
     )
 
@@ -73,7 +81,7 @@ def get_stats(host):
     results = defaultdict(int)
     data = request(host, '/stats').readlines()
     for line in data:
-        key, value = line.strip().split(': ')
+        key, value = str(line).strip().split(': ')
         try:
             results[key] = int(value)
         except ValueError:
