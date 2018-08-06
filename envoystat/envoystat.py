@@ -24,7 +24,7 @@ def main(args):
     signal.signal(signal.SIGINT, signal_handler)
 
     print datetime.datetime.now().strftime('%Y/%m/%d'), request(args['admin'], '/server_info').read()
-    
+
     header = args['fields']
     formatter = ' '.join('{: >10}' for i in range(len(header)))
     ts = lambda: datetime.datetime.now().strftime('%I:%M:%S %p')
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-i', '--interval', default=1,
-        help="Interval in seconds",
+        type=int, help="Interval in seconds",
     )
     parser.add_argument(
         '-f', '--fields',
