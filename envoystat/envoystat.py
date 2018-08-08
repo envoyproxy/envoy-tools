@@ -101,7 +101,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-i', '--interval', default=1,
-        help="Interval in seconds",
+        type=int, help="Interval in seconds",
     )
     parser.add_argument(
         '-f', '--fields',
