@@ -11,7 +11,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "blessed": "^0.1.81",
-    "blessed-contrib": "^4.8.5",
+    "blessed-contrib": "^4.8.7",
     "dateformat": "^3.0.2",
     "node-fetch": "^1.7.3",
     "simple-node-logger": "^0.93.33"
