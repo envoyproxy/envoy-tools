@@ -11,10 +11,10 @@
   "license": "Apache-2.0",
   "dependencies": {
     "blessed": "^0.1.81",
-    "blessed-contrib": "^4.8.5",
-    "dateformat": "^3.0.2",
-    "node-fetch": "^1.7.3",
-    "simple-node-logger": "^0.93.33"
+    "blessed-contrib": "^4.8.7",
+    "dateformat": "^3.0.3",
+    "node-fetch": "^2.2.0",
+    "simple-node-logger": "^0.93.40"
   },
   "devDependencies": {
     "babel-eslint": "^7.2.3",
