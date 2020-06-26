@@ -39,6 +39,6 @@ Options that are common can be exposed/controlled through command line flags, an
 
 ## Output
 ```
-Client ID                                          xDS stream type    Config                                                    
+Client ID                                          xDS stream type    Config                            
 <client_id>                                        ADS                myconfig.json
 ```
