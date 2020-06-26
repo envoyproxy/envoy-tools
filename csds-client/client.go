@@ -37,7 +37,38 @@ func main() () {
 			},
 		},
 		NodeMetadatas: []*envoy_type_matcher.StructMatcher{
-			&envoy_type_matcher.StructMatcher{},
+			&envoy_type_matcher.StructMatcher{
+				Path: []*envoy_type_matcher.StructMatcher_PathSegment{
+					&envoy_type_matcher.StructMatcher_PathSegment{
+						Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"},
+					},
+				},
+				Value: &envoy_type_matcher.ValueMatcher{
+					MatchPattern: &envoy_type_matcher.ValueMatcher_StringMatch{
+						StringMatch: &envoy_type_matcher.StringMatcher{
+							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+								Exact: "111526125",
+							},
+						},
+					},
+				},
+			},
+			&envoy_type_matcher.StructMatcher{
+				Path: []*envoy_type_matcher.StructMatcher_PathSegment{
+					&envoy_type_matcher.StructMatcher_PathSegment{
+						Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_NETWORK_NAME"},
+					},
+				},
+				Value: &envoy_type_matcher.ValueMatcher{
+					MatchPattern: &envoy_type_matcher.ValueMatcher_StringMatch{
+						StringMatch: &envoy_type_matcher.StringMatcher{
+							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+								Exact: "network_ytl",
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 	req := &csdspb.ClientStatusRequest{
