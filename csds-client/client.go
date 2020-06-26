@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
@@ -26,11 +27,33 @@ func main() () {
 	streamClient, streamerr := client.StreamClientStatus(context.Background())
 	if streamerr != nil {
 		error := fmt.Errorf("%v", streamerr)
+		fmt.Println("StreamClientStatus Error:")
 		fmt.Println(error.Error())
 	}
+	x := &envoy_type_matcher.NodeMatcher{
+		NodeId: &envoy_type_matcher.StringMatcher{
+			MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+				Exact: "eb71013c-d5ec-433a-b315-17ead830d819~10.168.0.3",
+			},
+		},
+		NodeMetadatas: []*envoy_type_matcher.StructMatcher{
+			&envoy_type_matcher.StructMatcher{},
+		},
+	}
+	req := &csdspb.ClientStatusRequest{
+		NodeMatchers: []*envoy_type_matcher.NodeMatcher{x},
+	}
+	reqerr := streamClient.Send(req)
+	if reqerr != nil {
+		error := fmt.Errorf("%v", reqerr)
+		fmt.Println("Send Error:")
+		fmt.Println(error.Error())
+	}
+
 	resp, resperr := streamClient.Recv()
 	if resperr != nil {
 		error := fmt.Errorf("%v", resperr)
+		fmt.Println("Recv Error:")
 		fmt.Println(error.Error())
 	} else {
 		fmt.Println("success")
