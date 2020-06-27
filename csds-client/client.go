@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
@@ -10,6 +11,45 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 )
+
+type Flag struct {
+	uri         string
+	platform    string
+	authnMode   string
+	apiVersion  string
+	requestYaml string
+	jwt         string
+}
+
+type Client struct {
+	cc         *grpc.ClientConn
+	csdsClient csdspb.ClientStatusDiscoveryServiceClient
+
+	nm   *envoy_type_matcher.NodeMatcher
+	info Flag
+}
+
+func parseFlags() Flag {
+	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
+	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
+	authnModePtr := flag.String("authn_mode", "auto", "the method to use for authentication (e.g. auto, jwt, ...)")
+	apiVersionPtr := flag.String("api_version", "v2", "which xds api major version  to use (e.g. v2, v3 ...)")
+	requestYamlPtr := flag.String("csds_request_yaml", "", "yaml file that defines the csds request")
+	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
+
+	flag.Parse()
+
+	f := Flag{
+		uri:         *uriPtr,
+		platform:    *platformPtr,
+		authnMode:   *authnModePtr,
+		apiVersion:  *apiVersionPtr,
+		requestYaml: *requestYamlPtr,
+		jwt:         *jwtPtr,
+	}
+
+	return f
+}
 
 func main() () {
 	pool, _ := x509.SystemCertPool()
