@@ -33,37 +33,33 @@ func main() () {
 	x := &envoy_type_matcher.NodeMatcher{
 		NodeId: &envoy_type_matcher.StringMatcher{
 			MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-				Exact: "eb71013c-d5ec-433a-b315-17ead830d819~10.168.0.3",
+				Exact: "8576d4bf-8f10-40b2-920b-bb6a7cf9f34a~10.168.0.3",
 			},
 		},
 		NodeMetadatas: []*envoy_type_matcher.StructMatcher{
-			&envoy_type_matcher.StructMatcher{
+			{
 				Path: []*envoy_type_matcher.StructMatcher_PathSegment{
-					&envoy_type_matcher.StructMatcher_PathSegment{
-						Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"},
-					},
+					{Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"}},
 				},
 				Value: &envoy_type_matcher.ValueMatcher{
 					MatchPattern: &envoy_type_matcher.ValueMatcher_StringMatch{
 						StringMatch: &envoy_type_matcher.StringMatcher{
 							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-								Exact: "111526125",
+								Exact: "798832730858",
 							},
 						},
 					},
 				},
 			},
-			&envoy_type_matcher.StructMatcher{
+			{
 				Path: []*envoy_type_matcher.StructMatcher_PathSegment{
-					&envoy_type_matcher.StructMatcher_PathSegment{
-						Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_NETWORK_NAME"},
-					},
+					{Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_NETWORK_NAME"}},
 				},
 				Value: &envoy_type_matcher.ValueMatcher{
 					MatchPattern: &envoy_type_matcher.ValueMatcher_StringMatch{
 						StringMatch: &envoy_type_matcher.StringMatcher{
 							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-								Exact: "network_ytl",
+								Exact: "default",
 							},
 						},
 					},
@@ -89,6 +85,6 @@ func main() () {
 	} else {
 		fmt.Println("success")
 	}
-	fmt.Println(resp.Config)
+	//fmt.Println(resp.Config)
 	fmt.Println(resp.String())
 }
