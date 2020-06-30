@@ -69,27 +69,39 @@ func (c *Client) parseNodeMatcher() error {
 }
 
 func (c *Client) ConnWithAuth() error {
+	scope := "https://www.googleapis.com/auth/cloud-platform"
 	if c.info.authnMode == "jwt" {
 		if c.info.jwt == "" {
 			return fmt.Errorf("missing jwt file")
 		} else {
-			pool, _ := x509.SystemCertPool()
-			scope := "https://www.googleapis.com/auth/cloud-platform"
+			pool, err := x509.SystemCertPool()
 			creds := credentials.NewClientTLSFromCert(pool, "")
-			perRPC, _ := oauth.NewServiceAccountFromFile(c.info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
+			perRPC, err := oauth.NewServiceAccountFromFile(c.info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
 
-			var connerr error
-			c.cc, connerr = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
-			if connerr != nil {
-				return fmt.Errorf("%v", connerr)
+			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			if err != nil {
+				return fmt.Errorf("%v", err)
 			} else {
 				return nil
 			}
 		}
 	} else if c.info.authnMode == "auto" {
+		pool, err := x509.SystemCertPool()
+		creds := credentials.NewClientTLSFromCert(pool, "")
+		perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
+		if err != nil {
+			return fmt.Errorf("%v", err)
+		}
+		c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+		if err != nil {
+			return fmt.Errorf("%v", err)
+		}
 		return nil
 	} else {
-		return fmt.Errorf("wrong type of authn_mode")
+		return fmt.Errorf("Invalid authn_mode")
 	}
 }
 
