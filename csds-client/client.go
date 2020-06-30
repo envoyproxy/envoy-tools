@@ -25,7 +25,7 @@ type Client struct {
 	cc         *grpc.ClientConn
 	csdsClient csdspb.ClientStatusDiscoveryServiceClient
 
-	nm   *envoy_type_matcher.NodeMatcher
+	nm   []*envoy_type_matcher.NodeMatcher
 	info Flag
 }
 
@@ -48,83 +48,92 @@ func parseFlags() Flag {
 		jwt:         *jwtPtr,
 	}
 
+	fmt.Printf("%v %v %v %v %v %v\n", f.uri, f.platform, f.authnMode, f.apiVersion, f.requestYaml, f.jwt)
+
 	return f
 }
 
-func main() () {
-	pool, _ := x509.SystemCertPool()
-	scope := "https://www.googleapis.com/auth/cloud-platform"
-	creds := credentials.NewClientTLSFromCert(pool, "")
-	perRPC, _ := oauth.NewServiceAccountFromFile("/usr/local/google/home/yutongli/service_account_key.json", scope)
-	conn, connerr := grpc.Dial("trafficdirector.googleapis.com:443", grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
-	if connerr != nil {
-		error := fmt.Errorf("%v", connerr)
-		fmt.Println(error.Error())
-	}
-	defer conn.Close()
-
-	client := csdspb.NewClientStatusDiscoveryServiceClient(conn)
-	streamClient, streamerr := client.StreamClientStatus(context.Background())
-	if streamerr != nil {
-		error := fmt.Errorf("%v", streamerr)
-		fmt.Println("StreamClientStatus Error:")
-		fmt.Println(error.Error())
-	}
-	x := &envoy_type_matcher.NodeMatcher{
-		NodeId: &envoy_type_matcher.StringMatcher{
-			MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-				Exact: "8576d4bf-8f10-40b2-920b-bb6a7cf9f34a~10.168.0.3",
-			},
-		},
-		NodeMetadatas: []*envoy_type_matcher.StructMatcher{
-			{
-				Path: []*envoy_type_matcher.StructMatcher_PathSegment{
-					{Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"}},
-				},
-				Value: &envoy_type_matcher.ValueMatcher{
-					MatchPattern: &envoy_type_matcher.ValueMatcher_StringMatch{
-						StringMatch: &envoy_type_matcher.StringMatcher{
-							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-								Exact: "798832730858",
-							},
-						},
-					},
-				},
-			},
-			{
-				Path: []*envoy_type_matcher.StructMatcher_PathSegment{
-					{Segment: &envoy_type_matcher.StructMatcher_PathSegment_Key{Key: "TRAFFICDIRECTOR_NETWORK_NAME"}},
-				},
-				Value: &envoy_type_matcher.ValueMatcher{
-					MatchPattern: &envoy_type_matcher.ValueMatcher_StringMatch{
-						StringMatch: &envoy_type_matcher.StringMatcher{
-							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-								Exact: "default",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	req := &csdspb.ClientStatusRequest{
-		NodeMatchers: []*envoy_type_matcher.NodeMatcher{x},
-	}
-	reqerr := streamClient.Send(req)
-	if reqerr != nil {
-		error := fmt.Errorf("%v", reqerr)
-		fmt.Println("Send Error:")
-		fmt.Println(error.Error())
+func (c *Client) parseNodeMatcher() error {
+	if c.info.requestYaml == "" {
+		return fmt.Errorf("missing request yaml")
 	}
 
-	resp, resperr := streamClient.Recv()
-	if resperr != nil {
-		error := fmt.Errorf("%v", resperr)
-		fmt.Println("Recv Error:")
-		fmt.Println(error.Error())
+	var nodematchers []*envoy_type_matcher.NodeMatcher
+	err := parseYaml(c.info.requestYaml, &nodematchers)
+	if err != nil {
+		return fmt.Errorf("%v", err)
+	}
+	fmt.Printf("%+v\n", nodematchers)
+	c.nm = nodematchers
+	return nil
+}
+
+func (c *Client) ConnWithAuth() error {
+	if c.info.authnMode == "jwt" {
+		if c.info.jwt == "" {
+			return fmt.Errorf("missing jwt file")
+		} else {
+			pool, _ := x509.SystemCertPool()
+			scope := "https://www.googleapis.com/auth/cloud-platform"
+			creds := credentials.NewClientTLSFromCert(pool, "")
+			perRPC, _ := oauth.NewServiceAccountFromFile(c.info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
+
+			var connerr error
+			c.cc, connerr = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			if connerr != nil {
+				return fmt.Errorf("%v", connerr)
+			} else {
+				return nil
+			}
+		}
+	} else if c.info.authnMode == "auto" {
+		return nil
 	} else {
-		fmt.Println("success")
+		return fmt.Errorf("wrong type of authn_mode")
 	}
-	//fmt.Println(resp.Config)
-	fmt.Println(resp.String())
+}
+
+func New() (*Client, error) {
+	c := &Client{
+		info: parseFlags(),
+	}
+	if connerr := c.ConnWithAuth(); connerr != nil {
+		return c, connerr
+	}
+	defer c.cc.Close()
+	if parseerr := c.parseNodeMatcher(); parseerr != nil {
+		return c, parseerr
+	}
+	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
+
+	if runerr := c.Run(); runerr != nil {
+		return c, runerr
+	}
+	return c, nil
+}
+
+func (c *Client) Run() error {
+	streamClientStatus, err := c.csdsClient.StreamClientStatus(context.Background())
+	if err != nil {
+		return fmt.Errorf("%v", err)
+	}
+	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
+	if err := streamClientStatus.Send(req); err != nil {
+		return fmt.Errorf("%v", err)
+	}
+
+	resp, err := streamClientStatus.Recv()
+	if err != nil {
+		return fmt.Errorf("%v", err)
+	}
+
+	fmt.Printf("%+v\n", resp)
+	return nil
+}
+
+func main() () {
+	_, error := New()
+	if error != nil {
+		fmt.Println(fmt.Errorf("%v", error).Error())
+	}
 }
