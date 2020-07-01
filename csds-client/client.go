@@ -89,17 +89,21 @@ func (c *Client) ConnWithAuth() error {
 			}
 		}
 	} else if c.info.authnMode == "auto" {
-		pool, err := x509.SystemCertPool()
-		creds := credentials.NewClientTLSFromCert(pool, "")
-		perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
-		if err != nil {
-			return fmt.Errorf("%v", err)
+		if c.info.platform=="gcp"{
+			pool, err := x509.SystemCertPool()
+			creds := credentials.NewClientTLSFromCert(pool, "")
+			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+			return nil
+		}else{
+			return fmt.Errorf("Auto authentication mode for this platform is not supported. Please use jwt_file instead")
 		}
-		c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
-		if err != nil {
-			return fmt.Errorf("%v", err)
-		}
-		return nil
 	} else {
 		return fmt.Errorf("Invalid authn_mode")
 	}
