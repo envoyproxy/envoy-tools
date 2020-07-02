@@ -48,8 +48,6 @@ func parseFlags() Flag {
 		jwt:         *jwtPtr,
 	}
 
-	fmt.Printf("%v %v %v %v %v %v\n", f.uri, f.platform, f.authnMode, f.apiVersion, f.requestYaml, f.jwt)
-
 	return f
 }
 
@@ -63,7 +61,7 @@ func (c *Client) parseNodeMatcher() error {
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
-	fmt.Printf("%+v\n", nodematchers)
+
 	c.nm = nodematchers
 	return nil
 }
@@ -89,7 +87,7 @@ func (c *Client) ConnWithAuth() error {
 			}
 		}
 	} else if c.info.authnMode == "auto" {
-		if c.info.platform=="gcp"{
+		if c.info.platform == "gcp" {
 			pool, err := x509.SystemCertPool()
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
@@ -101,7 +99,7 @@ func (c *Client) ConnWithAuth() error {
 				return fmt.Errorf("%v", err)
 			}
 			return nil
-		}else{
+		} else {
 			return fmt.Errorf("Auto authentication mode for this platform is not supported. Please use jwt_file instead")
 		}
 	} else {
@@ -143,7 +141,9 @@ func (c *Client) Run() error {
 		return fmt.Errorf("%v", err)
 	}
 
-	fmt.Printf("%+v\n", resp)
+	out := parseResponse(resp)
+	fmt.Println(out)
+
 	return nil
 }
 
