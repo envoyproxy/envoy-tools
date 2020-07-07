@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
+	"google.golang.org/grpc/metadata"
 )
 
 type Flag struct {
@@ -19,6 +20,7 @@ type Flag struct {
 	apiVersion  string
 	requestYaml string
 	jwt         string
+	configFile  string
 }
 
 type Client struct {
@@ -26,6 +28,7 @@ type Client struct {
 	csdsClient csdspb.ClientStatusDiscoveryServiceClient
 
 	nm   []*envoy_type_matcher.NodeMatcher
+	md   metadata.MD
 	info Flag
 }
 
@@ -36,6 +39,7 @@ func parseFlags() Flag {
 	apiVersionPtr := flag.String("api_version", "v2", "which xds api major version  to use (e.g. v2, v3 ...)")
 	requestYamlPtr := flag.String("csds_request_yaml", "", "yaml file that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
+	configFilePtr := flag.String("file_to_save_config", "", "the file name to save config")
 
 	flag.Parse()
 
@@ -46,6 +50,7 @@ func parseFlags() Flag {
 		apiVersion:  *apiVersionPtr,
 		requestYaml: *requestYamlPtr,
 		jwt:         *jwtPtr,
+		configFile:  *configFilePtr,
 	}
 
 	return f
@@ -94,9 +99,15 @@ func (c *Client) ConnWithAuth() error {
 			if err != nil {
 				return fmt.Errorf("%v", err)
 			}
+
+			// parse GCP project number as header for authentication
+			if projectNum := parseGCPProject(c.nm); projectNum != "" {
+				c.md = metadata.Pairs("x-goog-user-project", projectNum)
+			}
+
 			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
-				return fmt.Errorf("%v", err)
+				return fmt.Errorf("connect error: %v", err)
 			}
 			return nil
 		} else {
@@ -111,13 +122,15 @@ func New() (*Client, error) {
 	c := &Client{
 		info: parseFlags(),
 	}
+	if parseerr := c.parseNodeMatcher(); parseerr != nil {
+		return c, parseerr
+	}
+
 	if connerr := c.ConnWithAuth(); connerr != nil {
 		return c, connerr
 	}
 	defer c.cc.Close()
-	if parseerr := c.parseNodeMatcher(); parseerr != nil {
-		return c, parseerr
-	}
+
 	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
 
 	if runerr := c.Run(); runerr != nil {
@@ -127,9 +140,16 @@ func New() (*Client, error) {
 }
 
 func (c *Client) Run() error {
-	streamClientStatus, err := c.csdsClient.StreamClientStatus(context.Background())
+	var ctx context.Context
+	if c.md != nil {
+		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
+	} else {
+		ctx = context.Background()
+	}
+
+	streamClientStatus, err := c.csdsClient.StreamClientStatus(ctx)
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return fmt.Errorf("stream client status error: %v", err)
 	}
 	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
 	if err := streamClientStatus.Send(req); err != nil {
@@ -141,13 +161,12 @@ func (c *Client) Run() error {
 		return fmt.Errorf("%v", err)
 	}
 
-	out := parseResponse(resp)
-	fmt.Println(out)
+	parseResponse(resp, c.info.configFile)
 
 	return nil
 }
 
-func main() () {
+func main() {
 	_, error := New()
 	if error != nil {
 		fmt.Println(fmt.Errorf("%v", error).Error())
