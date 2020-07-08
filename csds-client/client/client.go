@@ -72,27 +72,31 @@ func (c *Client) ParseNodeMatcher() error {
 }
 
 func (c *Client) ConnWithAuth() error {
-	scope := "https://www.googleapis.com/auth/cloud-platform"
+	var scope string
 	if c.Info.authnMode == "jwt" {
 		if c.Info.jwt == "" {
 			return fmt.Errorf("missing jwt file")
 		} else {
-			pool, err := x509.SystemCertPool()
-			creds := credentials.NewClientTLSFromCert(pool, "")
-			perRPC, err := oauth.NewServiceAccountFromFile(c.Info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
-			if err != nil {
-				return fmt.Errorf("%v", err)
-			}
+			if c.Info.platform == "gcp" {
+				scope = "https://www.googleapis.com/auth/cloud-platform"
+				pool, err := x509.SystemCertPool()
+				creds := credentials.NewClientTLSFromCert(pool, "")
+				perRPC, err := oauth.NewServiceAccountFromFile(c.Info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
+				if err != nil {
+					return fmt.Errorf("%v", err)
+				}
 
-			c.Cc, err = grpc.Dial(c.Info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
-			if err != nil {
-				return fmt.Errorf("%v", err)
-			} else {
-				return nil
+				c.Cc, err = grpc.Dial(c.Info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+				if err != nil {
+					return fmt.Errorf("%v", err)
+				} else {
+					return nil
+				}
 			}
 		}
 	} else if c.Info.authnMode == "auto" {
 		if c.Info.platform == "gcp" {
+			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
@@ -122,19 +126,26 @@ func New() (*Client, error) {
 	c := &Client{
 		Info: ParseFlags(),
 	}
-	if parseerr := c.ParseNodeMatcher(); parseerr != nil {
-		return c, parseerr
+	if c.Info.platform!="gcp"{
+		return c, fmt.Errorf("Can not support this platform now")
+	}
+	if c.Info.apiVersion!="v2"{
+		return c, fmt.Errorf("Can not suppoort this api version now")
 	}
 
-	if connerr := c.ConnWithAuth(); connerr != nil {
-		return c, connerr
+	if err := c.ParseNodeMatcher(); err != nil {
+		return c, err
+	}
+
+	if err := c.ConnWithAuth(); err != nil {
+		return c, err
 	}
 	defer c.Cc.Close()
 
 	c.CsdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.Cc)
 
-	if runerr := c.Run(); runerr != nil {
-		return c, runerr
+	if err := c.Run(); err != nil {
+		return c, err
 	}
 	return c, nil
 }
