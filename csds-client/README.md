@@ -7,12 +7,12 @@ For now, this initial version of this CSDS client only support GCP's [Traffic Di
 * install dependencies using `go get`.
 
 # Running
-* run with `go run main.go <flag>`, e.g. 
-   * Running with auto authentication mode, run with 
+* run with `go run main.go <flag>`, e.g. <br/><br/>
+   * running with auto authentication mode, run with 
    ```
    go run main.go -service_uri trafficdirector.googleapis.com:443 -cloud_platform gcp -authn_mode auto -api_version v2 -csds_request_yaml <path to csds request yaml file>
   ```
-   * Running with jwt authentication mode, run with 
+   * running with jwt authentication mode, run with 
    ```
    go run main.go -service_uri trafficdirector.googleapis.com:443 -cloud_platform gcp -authn_mode jwt -api_version v2 -csds_request_yaml <path to csds request yaml file> -jwt_file <path to jwt key>
   ```
