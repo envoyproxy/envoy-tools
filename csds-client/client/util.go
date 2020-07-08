@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"encoding/json"
@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 )
 
-func parseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
+func ParseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	filename, _ := filepath.Abs(path)
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -50,7 +50,7 @@ func parseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	return nil
 }
 
-func parseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
+func ParseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
 			for _, path := range mt.Path {
@@ -102,7 +102,7 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
-func parseResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
+func ParseResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
 	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config")
 	for _, config := range response.Config {
 		id := config.Node.GetId()

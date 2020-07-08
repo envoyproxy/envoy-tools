@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"context"
@@ -18,21 +18,21 @@ type Flag struct {
 	platform    string
 	authnMode   string
 	apiVersion  string
-	requestYaml string
+	RequestYaml string
 	jwt         string
 	configFile  string
 }
 
 type Client struct {
-	cc         *grpc.ClientConn
-	csdsClient csdspb.ClientStatusDiscoveryServiceClient
+	Cc         *grpc.ClientConn
+	CsdsClient csdspb.ClientStatusDiscoveryServiceClient
 
-	nm   []*envoy_type_matcher.NodeMatcher
-	md   metadata.MD
-	info Flag
+	Nm   []*envoy_type_matcher.NodeMatcher
+	Md   metadata.MD
+	Info Flag
 }
 
-func parseFlags() Flag {
+func ParseFlags() Flag {
 	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
 	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
 	authnModePtr := flag.String("authn_mode", "auto", "the method to use for authentication (e.g. auto, jwt, ...)")
@@ -48,7 +48,7 @@ func parseFlags() Flag {
 		platform:    *platformPtr,
 		authnMode:   *authnModePtr,
 		apiVersion:  *apiVersionPtr,
-		requestYaml: *requestYamlPtr,
+		RequestYaml: *requestYamlPtr,
 		jwt:         *jwtPtr,
 		configFile:  *configFilePtr,
 	}
@@ -56,43 +56,43 @@ func parseFlags() Flag {
 	return f
 }
 
-func (c *Client) parseNodeMatcher() error {
-	if c.info.requestYaml == "" {
+func (c *Client) ParseNodeMatcher() error {
+	if c.Info.RequestYaml == "" {
 		return fmt.Errorf("missing request yaml")
 	}
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
-	err := parseYaml(c.info.requestYaml, &nodematchers)
+	err := ParseYaml(c.Info.RequestYaml, &nodematchers)
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
-	c.nm = nodematchers
+	c.Nm = nodematchers
 	return nil
 }
 
 func (c *Client) ConnWithAuth() error {
 	scope := "https://www.googleapis.com/auth/cloud-platform"
-	if c.info.authnMode == "jwt" {
-		if c.info.jwt == "" {
+	if c.Info.authnMode == "jwt" {
+		if c.Info.jwt == "" {
 			return fmt.Errorf("missing jwt file")
 		} else {
 			pool, err := x509.SystemCertPool()
 			creds := credentials.NewClientTLSFromCert(pool, "")
-			perRPC, err := oauth.NewServiceAccountFromFile(c.info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
+			perRPC, err := oauth.NewServiceAccountFromFile(c.Info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
 			if err != nil {
 				return fmt.Errorf("%v", err)
 			}
 
-			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.Cc, err = grpc.Dial(c.Info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return fmt.Errorf("%v", err)
 			} else {
 				return nil
 			}
 		}
-	} else if c.info.authnMode == "auto" {
-		if c.info.platform == "gcp" {
+	} else if c.Info.authnMode == "auto" {
+		if c.Info.platform == "gcp" {
 			pool, err := x509.SystemCertPool()
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
@@ -101,11 +101,11 @@ func (c *Client) ConnWithAuth() error {
 			}
 
 			// parse GCP project number as header for authentication
-			if projectNum := parseGCPProject(c.nm); projectNum != "" {
-				c.md = metadata.Pairs("x-goog-user-project", projectNum)
+			if projectNum := ParseGCPProject(c.Nm); projectNum != "" {
+				c.Md = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.Cc, err = grpc.Dial(c.Info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return fmt.Errorf("connect error: %v", err)
 			}
@@ -120,18 +120,18 @@ func (c *Client) ConnWithAuth() error {
 
 func New() (*Client, error) {
 	c := &Client{
-		info: parseFlags(),
+		Info: ParseFlags(),
 	}
-	if parseerr := c.parseNodeMatcher(); parseerr != nil {
+	if parseerr := c.ParseNodeMatcher(); parseerr != nil {
 		return c, parseerr
 	}
 
 	if connerr := c.ConnWithAuth(); connerr != nil {
 		return c, connerr
 	}
-	defer c.cc.Close()
+	defer c.Cc.Close()
 
-	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
+	c.CsdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.Cc)
 
 	if runerr := c.Run(); runerr != nil {
 		return c, runerr
@@ -141,17 +141,17 @@ func New() (*Client, error) {
 
 func (c *Client) Run() error {
 	var ctx context.Context
-	if c.md != nil {
-		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
+	if c.Md != nil {
+		ctx = metadata.NewOutgoingContext(context.Background(), c.Md)
 	} else {
 		ctx = context.Background()
 	}
 
-	streamClientStatus, err := c.csdsClient.StreamClientStatus(ctx)
+	streamClientStatus, err := c.CsdsClient.StreamClientStatus(ctx)
 	if err != nil {
 		return fmt.Errorf("stream client status error: %v", err)
 	}
-	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
+	req := &csdspb.ClientStatusRequest{NodeMatchers: c.Nm}
 	if err := streamClientStatus.Send(req); err != nil {
 		return fmt.Errorf("%v", err)
 	}
@@ -161,14 +161,7 @@ func (c *Client) Run() error {
 		return fmt.Errorf("%v", err)
 	}
 
-	parseResponse(resp, c.info.configFile)
+	ParseResponse(resp, c.Info.configFile)
 
 	return nil
-}
-
-func main() {
-	_, error := New()
-	if error != nil {
-		fmt.Println(fmt.Errorf("%v", error).Error())
-	}
 }
