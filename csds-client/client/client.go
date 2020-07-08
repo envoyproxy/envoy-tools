@@ -32,6 +32,7 @@ type Client struct {
 	Info Flag
 }
 
+// parse flags to info
 func ParseFlags() Flag {
 	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
 	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
@@ -56,6 +57,7 @@ func ParseFlags() Flag {
 	return f
 }
 
+// parse the csds request yaml to nodematcher
 func (c *Client) ParseNodeMatcher() error {
 	if c.Info.RequestYaml == "" {
 		return fmt.Errorf("missing request yaml")
@@ -71,6 +73,7 @@ func (c *Client) ParseNodeMatcher() error {
 	return nil
 }
 
+// connect uri with authentication
 func (c *Client) ConnWithAuth() error {
 	var scope string
 	if c.Info.authnMode == "jwt" {
@@ -81,7 +84,7 @@ func (c *Client) ConnWithAuth() error {
 				scope = "https://www.googleapis.com/auth/cloud-platform"
 				pool, err := x509.SystemCertPool()
 				creds := credentials.NewClientTLSFromCert(pool, "")
-				perRPC, err := oauth.NewServiceAccountFromFile(c.Info.jwt, scope) //"/usr/local/google/home/yutongli/service_account_key.json"
+				perRPC, err := oauth.NewServiceAccountFromFile(c.Info.jwt, scope)
 				if err != nil {
 					return fmt.Errorf("%v", err)
 				}
@@ -120,16 +123,18 @@ func (c *Client) ConnWithAuth() error {
 	} else {
 		return fmt.Errorf("Invalid authn_mode")
 	}
+	return nil
 }
 
+// create a new client
 func New() (*Client, error) {
 	c := &Client{
 		Info: ParseFlags(),
 	}
-	if c.Info.platform!="gcp"{
+	if c.Info.platform != "gcp" {
 		return c, fmt.Errorf("Can not support this platform now")
 	}
-	if c.Info.apiVersion!="v2"{
+	if c.Info.apiVersion != "v2" {
 		return c, fmt.Errorf("Can not suppoort this api version now")
 	}
 
@@ -150,6 +155,7 @@ func New() (*Client, error) {
 	return c, nil
 }
 
+// send request and receive response then post process it
 func (c *Client) Run() error {
 	var ctx context.Context
 	if c.Md != nil {
@@ -172,6 +178,7 @@ func (c *Client) Run() error {
 		return fmt.Errorf("%v", err)
 	}
 
+	// post process response
 	ParseResponse(resp, c.Info.configFile)
 
 	return nil

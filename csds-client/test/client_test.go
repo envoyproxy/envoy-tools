@@ -13,6 +13,7 @@ import (
 	"testing"
 )
 
+// test parsing csds request yaml to nodematcher
 func TestParseNodeMatcher(t *testing.T) {
 	c := client.Client{
 		Info: client.Flag{
@@ -61,6 +62,7 @@ func CaptureOutput(f func()) string {
 	return <-out
 }
 
+// test post processing response without node_id
 func TestParseResponseWithoutNodeId(t *testing.T) {
 	filename, _ := filepath.Abs("./response_without_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
@@ -81,6 +83,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	}
 }
 
+//test post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)

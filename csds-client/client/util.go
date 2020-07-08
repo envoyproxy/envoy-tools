@@ -17,7 +17,9 @@ import (
 	"path/filepath"
 )
 
+// helper method for parsing csds request yaml to nodematchers
 func ParseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
+	// parse yaml to json
 	filename, _ := filepath.Abs(path)
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -28,12 +30,14 @@ func ParseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 		return fmt.Errorf("%v", err)
 	}
 
+	// parse the json array to a map to iterate it
 	var data map[string]interface{}
 	err = json.Unmarshal(js, &data)
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}
 
+	// parse each json object to proto
 	for _, n := range data["node_matchers"].([]interface{}) {
 		x := &envoy_type_matcher.NodeMatcher{}
 
@@ -50,6 +54,7 @@ func ParseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	return nil
 }
 
+// parse gcp project number from metadata of nodematchers
 func ParseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
@@ -70,6 +75,7 @@ func (r *TypeResolver) FindMessageByName(message protoreflect.FullName) (protore
 	return nil, protoregistry.NotFound
 }
 
+// link the message type url to the specific message type
 func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
 	if url == "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager" {
 		httpConnectionManager := envoy_config_filter_network_http_connection_manager_v2.HttpConnectionManager{}
@@ -102,6 +108,7 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
+// post process response
 func ParseResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
 	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config")
 	for _, config := range response.Config {
@@ -129,6 +136,7 @@ func ParseResponse(response *envoy_service_status_v2.ClientStatusResponse, fileN
 			}
 			defer f.Close()
 
+			// format the json and resolve google.protobuf.Any types
 			m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
 			out, err := m.Marshal(response)
 			if err != nil {
