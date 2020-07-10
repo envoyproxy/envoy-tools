@@ -169,32 +169,33 @@ func ParseResponse(response *envoy_service_status_v2.ClientStatusResponse, fileN
 		var configFile string
 		if config.GetXdsConfig() == nil {
 			configFile = "N/A"
+			fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
 		} else {
-			if fileName == "" {
-				configFile = id + "_" + xdsType.(string) + "_config.json"
-			} else {
-				configFile = fileName
-			}
-
-			// parse response to json and write to the file
-			f, err := os.Create(configFile)
-			if err != nil {
-				fmt.Println(err)
-			}
-			defer f.Close()
-
+			// parse response to json
 			// format the json and resolve google.protobuf.Any types
 			m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
 			out, err := m.Marshal(response)
 			if err != nil {
 				fmt.Printf("%v", err)
 			}
-			_, err = f.Write(out)
-			if err != nil {
-				fmt.Printf("%v", err)
+			if fileName == "" {
+				// output the configuration to stdout by default
+				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
+				fmt.Println(string(out))
+			} else {
+				// write the configuration to the file
+				configFile = fileName
+				f, err := os.Create(configFile)
+				if err != nil {
+					fmt.Println(err)
+				}
+				defer f.Close()
+				_, err = f.Write(out)
+				if err != nil {
+					fmt.Printf("%v", err)
+				}
+				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
 			}
 		}
-
-		fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
 	}
 }
