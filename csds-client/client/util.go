@@ -9,6 +9,7 @@ import (
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/ghodss/yaml"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -18,38 +19,84 @@ import (
 )
 
 // helper method for parsing csds request yaml to nodematchers
-func ParseYaml(path string, nms *[]*envoy_type_matcher.NodeMatcher) error {
-	// parse yaml to json
-	filename, _ := filepath.Abs(path)
-	yamlFile, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("%v", err)
-	}
-	js, err := yaml.YAMLToJSON(yamlFile)
-	if err != nil {
-		return fmt.Errorf("%v", err)
-	}
-
-	// parse the json array to a map to iterate it
-	var data map[string]interface{}
-	err = json.Unmarshal(js, &data)
-	if err != nil {
-		return fmt.Errorf("%v", err)
-	}
-
-	// parse each json object to proto
-	for _, n := range data["node_matchers"].([]interface{}) {
-		x := &envoy_type_matcher.NodeMatcher{}
-
-		jsonString, err := json.Marshal(n)
+func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
+	if path != "" {
+		// parse yaml to json
+		filename, _ := filepath.Abs(path)
+		yamlFile, err := ioutil.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("%v", err)
 		}
-		err = protojson.Unmarshal(jsonString, x)
+		js, err := yaml.YAMLToJSON(yamlFile)
 		if err != nil {
 			return fmt.Errorf("%v", err)
 		}
-		*nms = append(*nms, x)
+
+		// parse the json array to a map to iterate it
+		var data map[string]interface{}
+		err = json.Unmarshal(js, &data)
+		if err != nil {
+			return fmt.Errorf("%v", err)
+		}
+
+		// parse each json object to proto
+		for _, n := range data["node_matchers"].([]interface{}) {
+			x := &envoy_type_matcher.NodeMatcher{}
+
+			jsonString, err := json.Marshal(n)
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+			err = protojson.Unmarshal(jsonString, x)
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+			*nms = append(*nms, x)
+		}
+	}
+	if yamlStr != "" {
+		var js []byte
+		var err error
+		// json input
+		if yamlStr[0] == '{' {
+			js = []byte(yamlStr)
+		} else {
+			// parse the yaml input into json
+			js, err = yaml.YAMLToJSON([]byte(yamlStr))
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+		}
+
+		// parse the json array to a map to iterate it
+		var data map[string]interface{}
+		err = json.Unmarshal(js, &data)
+		if err != nil {
+			return fmt.Errorf("%v", err)
+		}
+
+		// parse each json object to proto
+		i := 0
+		for _, n := range data["node_matchers"].([]interface{}) {
+			x := &envoy_type_matcher.NodeMatcher{}
+
+			jsonString, err := json.Marshal(n)
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+			err = protojson.Unmarshal(jsonString, x)
+			if err != nil {
+				return fmt.Errorf("%v", err)
+			}
+
+			// merge the proto with existing proto from request_file
+			if i < len(*nms) {
+				proto.Merge((*nms)[i], x)
+			} else {
+				*nms = append(*nms, x)
+			}
+			i++
+		}
 	}
 	return nil
 }

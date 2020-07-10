@@ -33,7 +33,11 @@ Options that are common can be exposed/controlled through command line flags, an
 * ***-api_version***: which xds api major version to use (e.g. v2, v3 ...)
   * If this flag is not specified, it will be set to *v2* as default.
 * ***-jwt_file***: path of the jwt_file
-* ***-csds_request_yaml***: yaml file that defines the csds request
+* ***-request_file***: yaml file that defines the csds request
+  * If this flag is missing, ***-request_yaml*** is required.
+* ***-request_yaml***: yaml string that defines the csds request
+  * If ***-request_file*** is also set, the values in this yaml string will override and merge with the request loaded from ***-request_file***. 
+  * Because yaml is a superset of json, a json string may also be passed to ***-request_yaml***.
 * ***-file_to_save_config***: file name to save configuration
    * If this flag is not specified, the file name will be generated automatically and the config will be saved to `<client_id>_<xds_stream_type>_config.json`.
 

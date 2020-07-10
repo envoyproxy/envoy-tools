@@ -18,6 +18,7 @@ type Flag struct {
 	platform    string
 	authnMode   string
 	apiVersion  string
+	RequestFile string
 	RequestYaml string
 	jwt         string
 	configFile  string
@@ -38,7 +39,8 @@ func ParseFlags() Flag {
 	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
 	authnModePtr := flag.String("authn_mode", "auto", "the method to use for authentication (e.g. auto, jwt, ...)")
 	apiVersionPtr := flag.String("api_version", "v2", "which xds api major version  to use (e.g. v2, v3 ...)")
-	requestYamlPtr := flag.String("csds_request_yaml", "", "yaml file that defines the csds request")
+	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
+	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
 	configFilePtr := flag.String("file_to_save_config", "", "the file name to save config")
 
@@ -49,6 +51,7 @@ func ParseFlags() Flag {
 		platform:    *platformPtr,
 		authnMode:   *authnModePtr,
 		apiVersion:  *apiVersionPtr,
+		RequestFile: *requestFilePtr,
 		RequestYaml: *requestYamlPtr,
 		jwt:         *jwtPtr,
 		configFile:  *configFilePtr,
@@ -59,12 +62,12 @@ func ParseFlags() Flag {
 
 // parse the csds request yaml to nodematcher
 func (c *Client) ParseNodeMatcher() error {
-	if c.Info.RequestYaml == "" {
+	if c.Info.RequestFile == "" && c.Info.RequestYaml == "" {
 		return fmt.Errorf("missing request yaml")
 	}
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
-	err := ParseYaml(c.Info.RequestYaml, &nodematchers)
+	err := ParseYaml(c.Info.RequestFile, c.Info.RequestYaml, &nodematchers)
 	if err != nil {
 		return fmt.Errorf("%v", err)
 	}

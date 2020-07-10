@@ -5,6 +5,7 @@ import (
 	"envoy-tools/csds-client/client"
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/encoding/prototext"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,11 +14,11 @@ import (
 	"testing"
 )
 
-// test parsing csds request yaml to nodematcher
-func TestParseNodeMatcher(t *testing.T) {
+// test parsing -request_file to nodematcher
+func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := client.Client{
 		Info: client.Flag{
-			RequestYaml: "./test_request.yaml",
+			RequestFile: "./test_request.yaml",
 		},
 	}
 	err := c.ParseNodeMatcher()
@@ -28,8 +29,64 @@ func TestParseNodeMatcher(t *testing.T) {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	if c.Nm[0].String() != want {
-		t.Errorf("NodeMatcher = %v, want: %v", c.Nm[0].String(), want)
+	get, err := prototext.Marshal(c.Nm[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	getStr := string(get)
+	if getStr != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	}
+}
+
+// test parsing -request_yaml to nodematcher
+func TestParseNodeMatcherWithString(t *testing.T) {
+	c := client.Client{
+		Info: client.Flag{
+			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
+		},
+	}
+	err := c.ParseNodeMatcher()
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	if c.Nm == nil {
+		t.Errorf("Parse NodeMatcher Failure!")
+	}
+	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
+	get, err := prototext.Marshal(c.Nm[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	getStr := string(get)
+	if getStr != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	}
+}
+
+// test parsing -request_file and -request_yaml to nodematcher
+func TestParseNodeMatcherWithFileAndString(t *testing.T) {
+	c := client.Client{
+		Info: client.Flag{
+			RequestFile: "./test_request.yaml",
+			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
+		},
+	}
+	err := c.ParseNodeMatcher()
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	if c.Nm == nil {
+		t.Errorf("Parse NodeMatcher Failure!")
+	}
+	want := "node_id:{exact:\"fake_node_id_from_cli\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
+	get, err := prototext.Marshal(c.Nm[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	getStr := string(get)
+	if getStr != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
 	}
 }
 
