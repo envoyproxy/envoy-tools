@@ -1,5 +1,5 @@
 # CSDS Client
-[Client status discovery service (CSDS)](https://www.envoyproxy.io/docs/envoy/latest/api-v2/service/status/v3/csds.proto) is a generic xDS API that can be used to get information about data plane clients from the control plane’s point of view. It is useful to enhance debuggability of the service mesh, where lots of xDS clients are connected to the control plane.<br/>
+[Client status discovery service (CSDS)](https://www.envoyproxy.io/docs/envoy/latest/api-v3/service/status/v3/csds.proto) is a generic xDS API that can be used to get information about data plane clients from the control plane’s point of view. It is useful to enhance debuggability of the service mesh, where lots of xDS clients are connected to the control plane.<br/>
 The CSDS client is developed as a generic tool that can be used/extended to work with different xDS control planes.<br/>
 For now, this initial version of this CSDS client only support GCP's [Traffic Director](https://cloud.google.com/traffic-director).
 <br/>Before you start, you'll need [Go](https://golang.org/) installed.
