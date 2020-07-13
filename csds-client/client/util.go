@@ -1,11 +1,13 @@
 package client
 
 import (
+	"bytes"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"io"
 
 	"encoding/json"
 	"fmt"
@@ -18,6 +20,22 @@ import (
 	"os"
 	"path/filepath"
 )
+
+// isJson checks if str is a valid json format string
+func isJson(str string) bool {
+	input := []byte(str)
+	decoder := json.NewDecoder(bytes.NewReader(input))
+	for {
+		_, err := decoder.Token()
+		if err == io.EOF { // end of string
+			break
+		}
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}
 
 // parseYaml is a helper method for parsing csds request yaml to nodematchers
 func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
@@ -60,7 +78,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 		var js []byte
 		var err error
 		// json input
-		if yamlStr[0] == '{' {
+		if isJson(yamlStr) {
 			js = []byte(yamlStr)
 		} else {
 			// parse the yaml input into json
