@@ -1,13 +1,14 @@
 package client
 
 import (
-	"encoding/json"
-	"fmt"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
+	"encoding/json"
+	"fmt"
 	"github.com/ghodss/yaml"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -18,8 +19,8 @@ import (
 	"path/filepath"
 )
 
-// helper method for parsing csds request yaml to nodematchers
-func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
+// parseYaml is a helper method for parsing csds request yaml to nodematchers
+func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	if path != "" {
 		// parse yaml to json
 		filename, _ := filepath.Abs(path)
@@ -34,8 +35,7 @@ func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 
 		// parse the json array to a map to iterate it
 		var data map[string]interface{}
-		err = json.Unmarshal(js, &data)
-		if err != nil {
+		if err = json.Unmarshal(js, &data); err != nil {
 			return fmt.Errorf("%v", err)
 		}
 
@@ -47,8 +47,7 @@ func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 			if err != nil {
 				return fmt.Errorf("%v", err)
 			}
-			err = protojson.Unmarshal(jsonString, x)
-			if err != nil {
+			if err = protojson.Unmarshal(jsonString, x); err != nil {
 				return fmt.Errorf("%v", err)
 			}
 			*nms = append(*nms, x)
@@ -70,8 +69,7 @@ func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 
 		// parse the json array to a map to iterate it
 		var data map[string]interface{}
-		err = json.Unmarshal(js, &data)
-		if err != nil {
+		if err = json.Unmarshal(js, &data); err != nil {
 			return fmt.Errorf("%v", err)
 		}
 
@@ -84,8 +82,7 @@ func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 			if err != nil {
 				return fmt.Errorf("%v", err)
 			}
-			err = protojson.Unmarshal(jsonString, x)
-			if err != nil {
+			if err = protojson.Unmarshal(jsonString, x); err != nil {
 				return fmt.Errorf("%v", err)
 			}
 
@@ -101,8 +98,8 @@ func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 	return nil
 }
 
-// parse gcp project number from metadata of nodematchers
-func ParseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
+// parseGCPProject parses gcp project number from metadata of nodematchers
+func parseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
 			for _, path := range mt.Path {
@@ -115,36 +112,34 @@ func ParseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
 	return ""
 }
 
-// implement protoregistry.ExtensionTypeResolver and protoregistry.MessageTypeResolver to resolve google.protobuf.Any types
+// TypeResolver implements protoregistry.ExtensionTypeResolver and protoregistry.MessageTypeResolver to resolve google.protobuf.Any types
 type TypeResolver struct{}
 
 func (r *TypeResolver) FindMessageByName(message protoreflect.FullName) (protoreflect.MessageType, error) {
 	return nil, protoregistry.NotFound
 }
 
-// link the message type url to the specific message type
+// FindMessageByURL links the message type url to the specific message type
 func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
-	if url == "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager" {
+	switch url {
+	case "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager":
 		httpConnectionManager := envoy_config_filter_network_http_connection_manager_v2.HttpConnectionManager{}
 		return httpConnectionManager.ProtoReflect().Type(), nil
-	}
-	if url == "type.googleapis.com/envoy.api.v2.Cluster" {
+	case "type.googleapis.com/envoy.api.v2.Cluster":
 		cluster := envoy_api_v2.Cluster{}
 		return cluster.ProtoReflect().Type(), nil
-	}
-	if url == "type.googleapis.com/envoy.api.v2.Listener" {
+	case "type.googleapis.com/envoy.api.v2.Listener":
 		listener := envoy_api_v2.Listener{}
 		return listener.ProtoReflect().Type(), nil
-	}
-	if url == "type.googleapis.com/envoy.config.filter.http.router.v2.Router" {
+	case "type.googleapis.com/envoy.config.filter.http.router.v2.Router":
 		router := envoy_config_filter_http_router_v2.Router{}
 		return router.ProtoReflect().Type(), nil
-	}
-	if url == "type.googleapis.com/envoy.api.v2.RouteConfiguration" {
+	case "type.googleapis.com/envoy.api.v2.RouteConfiguration":
 		routeConfiguration := envoy_api_v2.RouteConfiguration{}
 		return routeConfiguration.ProtoReflect().Type(), nil
+	default:
+		return nil, protoregistry.NotFound
 	}
-	return nil, protoregistry.NotFound
 }
 
 func (r *TypeResolver) FindExtensionByName(field protoreflect.FullName) (protoreflect.ExtensionType, error) {
@@ -155,8 +150,8 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
-// post process response
-func ParseResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
+// printOutResponse posts process response and print
+func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
 	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config")
 	for _, config := range response.Config {
 		id := config.Node.GetId()

@@ -1,9 +1,9 @@
-package test
+package client
 
 import (
-	"bytes"
-	"envoy-tools/csds-client/client"
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+
+	"bytes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"io"
@@ -16,20 +16,20 @@ import (
 
 // test parsing -request_file to nodematcher
 func TestParseNodeMatcherWithFile(t *testing.T) {
-	c := client.Client{
-		Info: client.Flag{
-			RequestFile: "./test_request.yaml",
+	c := Client{
+		info: Flag{
+			requestFile: "./test_request.yaml",
 		},
 	}
-	err := c.ParseNodeMatcher()
+	err := c.parseNodeMatcher()
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.Nm == nil {
+	if c.nm == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.Nm[0])
+	get, err := prototext.Marshal(c.nm[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
@@ -41,20 +41,20 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 
 // test parsing -request_yaml to nodematcher
 func TestParseNodeMatcherWithString(t *testing.T) {
-	c := client.Client{
-		Info: client.Flag{
-			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
+	c := Client{
+		info: Flag{
+			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
-	err := c.ParseNodeMatcher()
+	err := c.parseNodeMatcher()
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.Nm == nil {
+	if c.nm == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.Nm[0])
+	get, err := prototext.Marshal(c.nm[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
@@ -66,21 +66,21 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 
 // test parsing -request_file and -request_yaml to nodematcher
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
-	c := client.Client{
-		Info: client.Flag{
-			RequestFile: "./test_request.yaml",
-			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
+	c := Client{
+		info: Flag{
+			requestFile: "./test_request.yaml",
+			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
 	}
-	err := c.ParseNodeMatcher()
+	err := c.parseNodeMatcher()
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.Nm == nil {
+	if c.nm == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id_from_cli\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.Nm[0])
+	get, err := prototext.Marshal(c.nm[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
-		client.ParseResponse(&response, "")
+		printOutResponse(&response, "")
 	})
 	want := "Client ID                                          xDS stream type                Config                         \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
 	if out != want {
@@ -153,7 +153,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
-		client.ParseResponse(&response, "test_config.json")
+		printOutResponse(&response, "test_config.json")
 	})
 	want := "Client ID                                          xDS stream type                Config                         \nSTALE                                              test_stream_type1              test_config.json               \n"
 	if out != want {

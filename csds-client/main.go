@@ -6,8 +6,12 @@ import (
 )
 
 func main() {
-	_, error := client.New()
-	if error != nil {
-		fmt.Println(fmt.Errorf("%v", error).Error())
+	c, err := client.New()
+	if err != nil {
+		fmt.Printf("%v\n", err)
+	}
+
+	if err := c.Run(); err != nil {
+		fmt.Printf("%v\n", err)
 	}
 }
