@@ -23,20 +23,23 @@ import (
 func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	if path != "" {
 		// parse yaml to json
-		filename, _ := filepath.Abs(path)
+		filename, err := filepath.Abs(path)
+		if err != nil {
+			return err
+		}
 		yamlFile, err := ioutil.ReadFile(filename)
 		if err != nil {
-			return fmt.Errorf("%v", err)
+			return err
 		}
 		js, err := yaml.YAMLToJSON(yamlFile)
 		if err != nil {
-			return fmt.Errorf("%v", err)
+			return err
 		}
 
 		// parse the json array to a map to iterate it
 		var data map[string]interface{}
 		if err = json.Unmarshal(js, &data); err != nil {
-			return fmt.Errorf("%v", err)
+			return err
 		}
 
 		// parse each json object to proto
@@ -45,10 +48,10 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 
 			jsonString, err := json.Marshal(n)
 			if err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 			if err = protojson.Unmarshal(jsonString, x); err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 			*nms = append(*nms, x)
 		}
@@ -63,14 +66,14 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 			// parse the yaml input into json
 			js, err = yaml.YAMLToJSON([]byte(yamlStr))
 			if err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 		}
 
 		// parse the json array to a map to iterate it
 		var data map[string]interface{}
 		if err = json.Unmarshal(js, &data); err != nil {
-			return fmt.Errorf("%v", err)
+			return err
 		}
 
 		// parse each json object to proto
@@ -80,10 +83,10 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 
 			jsonString, err := json.Marshal(n)
 			if err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 			if err = protojson.Unmarshal(jsonString, x); err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 
 			// merge the proto with existing proto from request_file

@@ -76,7 +76,7 @@ func (c *Client) parseNodeMatcher() error {
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
 	if err := parseYaml(c.info.requestFile, c.info.requestYaml, &nodematchers); err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 
 	c.nm = nodematchers
@@ -98,15 +98,14 @@ func (c *Client) connWithAuth() error {
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewServiceAccountFromFile(c.info.jwt, scope)
 			if err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 
 			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
-				return fmt.Errorf("%v", err)
-			} else {
-				return nil
+				return err
 			}
+			return nil
 		default:
 			return nil
 		}
@@ -118,7 +117,7 @@ func (c *Client) connWithAuth() error {
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
 			if err != nil {
-				return fmt.Errorf("%v", err)
+				return err
 			}
 
 			// parse GCP project number as header for authentication
@@ -128,7 +127,7 @@ func (c *Client) connWithAuth() error {
 
 			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
-				return fmt.Errorf("connect error: %v", err)
+				return err
 			}
 			return nil
 		default:
@@ -174,7 +173,7 @@ func (c *Client) Run() error {
 	}
 	streamClientStatus, err := c.csdsClient.StreamClientStatus(ctx)
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 
 	// run once or run with monitor mode
@@ -187,7 +186,7 @@ func (c *Client) Run() error {
 	default:
 		freq, err := time.ParseDuration(c.info.monitorFreq)
 		if err != nil {
-			return fmt.Errorf("%v", err)
+			return err
 		}
 		ticker := time.NewTicker(freq)
 
@@ -210,7 +209,7 @@ func (c *Client) Run() error {
 		}()
 		time.Sleep(time.Minute)
 		if err != nil {
-			return fmt.Errorf("%v", err)
+			return err
 		}
 		return nil
 	}
@@ -221,12 +220,12 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 
 	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
 	if err := streamClientStatus.Send(req); err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 
 	resp, err := streamClientStatus.Recv()
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return err
 	}
 
 	// post process response
