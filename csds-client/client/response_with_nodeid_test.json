@@ -2,7 +2,7 @@
   "config": [
     {
       "node": {
-        "id": "STALE",
+        "id": "test_nodeid",
         "metadata": {
           "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER": "fake_project_number",
           "TRAFFICDIRECTOR_NETWORK_NAME": "fake_network_name",

@@ -1,5 +1,5 @@
 # CSDS Client
-[Client status discovery service (CSDS)](https://www.envoyproxy.io/docs/envoy/latest/api-v2/service/status/v2/csds.proto) is a generic xDS API that can be used to get information about data plane clients from the control plane’s point of view. It is useful to enhance debuggability of the service mesh, where lots of xDS clients are connected to the control plane.<br/>
+[Client status discovery service (CSDS)](https://www.envoyproxy.io/docs/envoy/latest/api-v2/service/status/v3/csds.proto) is a generic xDS API that can be used to get information about data plane clients from the control plane’s point of view. It is useful to enhance debuggability of the service mesh, where lots of xDS clients are connected to the control plane.<br/>
 The CSDS client is developed as a generic tool that can be used/extended to work with different xDS control planes.<br/>
 For now, this initial version of this CSDS client only support GCP's [Traffic Director](https://cloud.google.com/traffic-director).
 <br/>Before you start, you'll need [Go](https://golang.org/) installed.
@@ -40,6 +40,9 @@ Options that are common can be exposed/controlled through command line flags, an
   * Because yaml is a superset of json, a json string may also be passed to ***-request_yaml***.
 * ***-file_to_save_config***: file name to save configuration
    * If this flag is not specified, the configuration will be output to stdout by default.
+* ***-monitor_freq***: the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m, ...)
+   * If this flag is not specified, the client will run only once.
+   * If this flag is specified, the client will run continuously and send request frequently. Use `Ctrl+C` to exit.
 
 ## Output
 ```
