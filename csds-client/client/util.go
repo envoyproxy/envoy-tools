@@ -119,12 +119,12 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 	return nil
 }
 
-// parseGCPProject parses gcp project number from metadata of nodematchers
-func parseGCPProject(nms []*envoy_type_matcher.NodeMatcher) string {
+// getValueByKeyFromNodeMatcher get value by key from metadata of nodematchers
+func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
 			for _, path := range mt.Path {
-				if path.GetKey() == "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER" {
+				if path.GetKey() == key {
 					return mt.Value.GetStringMatch().GetExact()
 				}
 			}

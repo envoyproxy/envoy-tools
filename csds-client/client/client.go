@@ -121,7 +121,12 @@ func (c *Client) connWithAuth() error {
 			}
 
 			// parse GCP project number as header for authentication
-			if projectNum := parseGCPProject(c.nm); projectNum != "" {
+			var key string
+			switch c.info.uri {
+			case "trafficdirector.googleapis.com:443":
+				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
+			}
+			if projectNum := getValueByKeyFromNodeMatcher(c.nm, key); projectNum != "" {
 				c.md = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
