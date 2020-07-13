@@ -80,6 +80,21 @@ func (c *Client) parseNodeMatcher() error {
 	}
 
 	c.nm = nodematchers
+
+	// check if required fields exist in nodematcher
+	switch c.info.platform {
+	case "gcp":
+		switch c.info.uri {
+		case "trafficdirector.googleapis.com:443":
+			keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
+			for _, key := range keys {
+				if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
+					return fmt.Errorf("Missing field %v in NodeMatcher", key)
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
