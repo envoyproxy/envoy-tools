@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -19,6 +20,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 // isJson checks if str is a valid json format string
@@ -194,6 +196,7 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			if err != nil {
 				fmt.Printf("%v", err)
 			}
+			parseXdsRelationship(out)
 			if fileName == "" {
 				// output the configuration to stdout by default
 				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
@@ -214,4 +217,106 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			}
 		}
 	}
+}
+
+func parseXdsRelationship(js []byte) error {
+	var data map[string]interface{}
+	err := json.Unmarshal(js, &data)
+	if err != nil {
+		return err
+	}
+	lds := make(map[string]string)
+	rds := make(map[string]string)
+	cds := make(map[string]string)
+	ldsToRds := make(map[string]*hashset.Set)
+	rdsToCds := make(map[string]*hashset.Set)
+
+	for _, config := range data["config"].([]interface{}) {
+		configMap := config.(map[string]interface{})
+		for _, xds := range configMap["xdsConfig"].([]interface{}) {
+			for key, value := range xds.(map[string]interface{}) {
+				if key == "status" {
+					continue
+				}
+				switch key {
+				case "listenerConfig":
+					for _, listeners := range value.(map[string]interface{}) {
+						for idx, listener := range listeners.([]interface{}) {
+							detail := listener.(map[string]interface{})["activeState"].(map[string]interface{})["listener"].(map[string]interface{})
+							name := detail["name"].(string)
+							id := "LDS" + strconv.Itoa(idx)
+							lds[name] = id
+							rdsSet := hashset.New()
+
+							for _, filterchain := range detail["filterChains"].([]interface{}) {
+								for _, filter := range filterchain.(map[string]interface{})["filters"].([]interface{}) {
+									rdsName := filter.(map[string]interface{})["typedConfig"].(map[string]interface{})["rds"].(map[string]interface{})["routeConfigName"].(string)
+									rdsSet.Add(rdsName)
+								}
+							}
+							ldsToRds[id] = rdsSet
+						}
+					}
+					break
+				case "routeConfig":
+					for _, routes := range value.(map[string]interface{}) {
+						for idx, route := range routes.([]interface{}) {
+							routeConfig := route.(map[string]interface{})["routeConfig"].(map[string]interface{})
+							name := routeConfig["name"].(string)
+							id := "RDS" + strconv.Itoa(idx)
+							rds[name] = id
+							cdsSet := hashset.New()
+
+							for _, virtualHost := range routeConfig["virtualHosts"].([]interface{}) {
+								for _, virtualRoutes := range virtualHost.(map[string]interface{})["routes"].([]interface{}) {
+									virtualRoute := virtualRoutes.(map[string]interface{})["route"].(map[string]interface{})
+									if weightedClusters, ok := virtualRoute["weightedClusters"]; ok {
+										for _, cluster := range weightedClusters.(map[string]interface{})["clusters"].([]interface{}) {
+											cdsName := cluster.(map[string]interface{})["name"].(string)
+											cdsId := cds[cdsName]
+											fmt.Printf("%v: %v\n", cdsId, cdsName)
+											cdsSet.Add(cdsName)
+										}
+									} else {
+										cdsName := virtualRoute["cluster"].(string)
+										cdsSet.Add(cdsName)
+									}
+								}
+							}
+							rdsToCds[id] = cdsSet
+						}
+					}
+					break
+				case "clusterConfig":
+					for _, clusters := range value.(map[string]interface{}) {
+						for idx, cluster := range clusters.([]interface{}) {
+							name := cluster.(map[string]interface{})["cluster"].(map[string]interface{})["name"].(string)
+							id := "CDS" + strconv.Itoa(idx)
+							cds[name] = id
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	for lds, rdsSet := range ldsToRds {
+		rdsIdSet := hashset.New()
+		for _, name := range rdsSet.Values() {
+			rdsIdSet.Add(rds[name.(string)])
+		}
+		ldsToRds[lds] = rdsIdSet
+	}
+	for rds, cdsSet := range rdsToCds {
+		cdsIdSet := hashset.New()
+		for _, name := range cdsSet.Values() {
+			cdsIdSet.Add(cds[name.(string)])
+		}
+		rdsToCds[rds] = cdsIdSet
+	}
+
+	fmt.Printf("%v\n%v\n%v\n", lds, rds, cds)
+	fmt.Printf("%v\n%v\n", ldsToRds, rdsToCds)
+	return nil
 }
