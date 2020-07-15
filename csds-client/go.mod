@@ -3,6 +3,7 @@ module envoy-tools/csds-client
 go 1.14
 
 require (
+	github.com/awalterschulze/gographviz v2.0.1+incompatible
 	github.com/emirpasic/gods v1.12.0
 	github.com/envoyproxy/go-control-plane v0.9.6
 	github.com/ghodss/yaml v1.0.0

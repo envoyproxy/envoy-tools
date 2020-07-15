@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/awalterschulze/gographviz"
 	"github.com/emirpasic/gods/sets/hashset"
 	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -19,7 +20,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 )
 
@@ -173,6 +176,11 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
+type GraphData struct {
+	nodes     []map[string]string
+	relations []map[string]*hashset.Set
+}
+
 // printOutResponse posts process response and print
 func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
 	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config")
@@ -273,8 +281,6 @@ func parseXdsRelationship(js []byte) error {
 									if weightedClusters, ok := virtualRoute["weightedClusters"]; ok {
 										for _, cluster := range weightedClusters.(map[string]interface{})["clusters"].([]interface{}) {
 											cdsName := cluster.(map[string]interface{})["name"].(string)
-											cdsId := cds[cdsName]
-											fmt.Printf("%v: %v\n", cdsId, cdsName)
 											cdsSet.Add(cdsName)
 										}
 									} else {
@@ -316,7 +322,71 @@ func parseXdsRelationship(js []byte) error {
 		rdsToCds[rds] = cdsIdSet
 	}
 
+	gData := GraphData{
+		nodes:     []map[string]string{lds, rds, cds},
+		relations: []map[string]*hashset.Set{ldsToRds, rdsToCds},
+	}
+	if err := generateGraph(gData); err != nil {
+		return err
+	}
 	fmt.Printf("%v\n%v\n%v\n", lds, rds, cds)
 	fmt.Printf("%v\n%v\n", ldsToRds, rdsToCds)
+	return nil
+}
+
+func openBrowser(url string) error {
+	var err error
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+		break
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		break
+	case "darwin":
+		err = exec.Command("open", url).Start()
+		break
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func generateGraph(data GraphData) error {
+	graphAst, err := gographviz.ParseString(`digraph G {}`)
+	if err != nil {
+		return err
+	}
+	graph := gographviz.NewGraph()
+	if err := gographviz.Analyse(graphAst, graph); err != nil {
+		return err
+	}
+
+	for _, xDS := range data.nodes {
+		for _, node := range xDS {
+			if err := graph.AddNode("G", node, nil); err != nil {
+				return err
+			}
+		}
+	}
+	for _, relations := range data.relations {
+		for src, set := range relations {
+			for _, dst := range set.Values() {
+				if err := graph.AddEdge(src, dst.(string), true, nil); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	fmt.Printf("%v\n", graph.String())
+
+	url := "http://dreampuf.github.io/GraphvizOnline/#" + graph.String()
+	if err := openBrowser(url); err != nil {
+		return err
+	}
 	return nil
 }
