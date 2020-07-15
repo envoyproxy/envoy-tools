@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/awalterschulze/gographviz"
-	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -178,7 +178,7 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 
 type GraphData struct {
 	nodes     []map[string]string
-	relations []map[string]*hashset.Set
+	relations []map[string]*treeset.Set
 }
 
 // printOutResponse posts process response and print
@@ -204,7 +204,10 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			if err != nil {
 				fmt.Printf("%v", err)
 			}
-			parseXdsRelationship(out)
+			if err := parseXdsRelationship(out); err != nil {
+				fmt.Printf("%v\n",err)
+				return
+			}
 			if fileName == "" {
 				// output the configuration to stdout by default
 				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
@@ -236,8 +239,8 @@ func parseXdsRelationship(js []byte) error {
 	lds := make(map[string]string)
 	rds := make(map[string]string)
 	cds := make(map[string]string)
-	ldsToRds := make(map[string]*hashset.Set)
-	rdsToCds := make(map[string]*hashset.Set)
+	ldsToRds := make(map[string]*treeset.Set)
+	rdsToCds := make(map[string]*treeset.Set)
 
 	for _, config := range data["config"].([]interface{}) {
 		configMap := config.(map[string]interface{})
@@ -254,7 +257,7 @@ func parseXdsRelationship(js []byte) error {
 							name := detail["name"].(string)
 							id := "LDS" + strconv.Itoa(idx)
 							lds[name] = id
-							rdsSet := hashset.New()
+							rdsSet := treeset.NewWithStringComparator()
 
 							for _, filterchain := range detail["filterChains"].([]interface{}) {
 								for _, filter := range filterchain.(map[string]interface{})["filters"].([]interface{}) {
@@ -273,7 +276,7 @@ func parseXdsRelationship(js []byte) error {
 							name := routeConfig["name"].(string)
 							id := "RDS" + strconv.Itoa(idx)
 							rds[name] = id
-							cdsSet := hashset.New()
+							cdsSet := treeset.NewWithStringComparator()
 
 							for _, virtualHost := range routeConfig["virtualHosts"].([]interface{}) {
 								for _, virtualRoutes := range virtualHost.(map[string]interface{})["routes"].([]interface{}) {
@@ -308,14 +311,14 @@ func parseXdsRelationship(js []byte) error {
 	}
 
 	for lds, rdsSet := range ldsToRds {
-		rdsIdSet := hashset.New()
+		rdsIdSet := treeset.NewWithStringComparator()
 		for _, name := range rdsSet.Values() {
 			rdsIdSet.Add(rds[name.(string)])
 		}
 		ldsToRds[lds] = rdsIdSet
 	}
 	for rds, cdsSet := range rdsToCds {
-		cdsIdSet := hashset.New()
+		cdsIdSet := treeset.NewWithStringComparator()
 		for _, name := range cdsSet.Values() {
 			cdsIdSet.Add(cds[name.(string)])
 		}
@@ -324,7 +327,7 @@ func parseXdsRelationship(js []byte) error {
 
 	gData := GraphData{
 		nodes:     []map[string]string{lds, rds, cds},
-		relations: []map[string]*hashset.Set{ldsToRds, rdsToCds},
+		relations: []map[string]*treeset.Set{ldsToRds, rdsToCds},
 	}
 	if err := generateGraph(gData); err != nil {
 		return err
