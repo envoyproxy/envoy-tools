@@ -46,6 +46,12 @@ Options that are common can be exposed/controlled through command line flags, an
 
 ## Output
 ```
-Client ID                      xDS stream type                Config                            
-<client_id>                    ADS                            myconfig.json
+Client ID                      xDS stream type                Config Status                           
+<client_id>                    ADS                            LDS SYNCED
+                                                              RDS SYNCED
+                                                              CDS STALE
+(Detail Config:
+ <detail config>)
+OR
+(Config has been saved to <file_to_save_config>)
 ```
