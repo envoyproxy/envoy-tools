@@ -134,13 +134,13 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	out := CaptureOutput(func() {
 		printOutResponse(&response, "")
 	})
-	want := "Client ID                                          xDS stream type                Config                         \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
 }
 
-//test post processing response with node_id
+// test post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
@@ -155,7 +155,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	out := CaptureOutput(func() {
 		printOutResponse(&response, "test_config.json")
 	})
-	want := "Client ID                                          xDS stream type                Config                         \nSTALE                                              test_stream_type1              test_config.json               \n"
+	want := "Client ID                                          xDS stream type                Config Status                  \ntest_nodeid                                        test_stream_type1              RDS   STALE                    \n                                                                                  CDS   STALE                    \nConfig has been saved to test_config.json\n"
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
