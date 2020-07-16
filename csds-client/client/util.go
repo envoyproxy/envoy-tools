@@ -195,7 +195,7 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 }
 
 // printOutResponse posts process response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
+func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) error {
 	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
 	var hasXdsConfig bool
 
@@ -234,7 +234,7 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 		m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
 		out, err := m.Marshal(response)
 		if err != nil {
-			fmt.Printf("%v", err)
+			return err
 		}
 
 		if fileName == "" {
@@ -245,14 +245,15 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			// write the configuration to the file
 			f, err := os.Create(fileName)
 			if err != nil {
-				fmt.Println(err)
+				return err
 			}
 			defer f.Close()
 			_, err = f.Write(out)
 			if err != nil {
-				fmt.Printf("%v", err)
+				return err
 			}
 			fmt.Printf("Config has been saved to %v\n", fileName)
 		}
 	}
+	return nil
 }

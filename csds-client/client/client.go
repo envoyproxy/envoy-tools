@@ -6,6 +6,7 @@ import (
 
 	"context"
 	"crypto/x509"
+	"errors"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
@@ -71,7 +72,7 @@ func ParseFlags() Flag {
 // parseNodeMatcher parses the csds request yaml to nodematcher
 func (c *Client) parseNodeMatcher() error {
 	if c.info.requestFile == "" && c.info.requestYaml == "" {
-		return fmt.Errorf("missing request yaml")
+		return errors.New("missing request yaml")
 	}
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
@@ -89,7 +90,7 @@ func (c *Client) parseNodeMatcher() error {
 			keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
 			for _, key := range keys {
 				if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
-					return fmt.Errorf("Missing field %v in NodeMatcher", key)
+					return fmt.Errorf("missing field %v in NodeMatcher", key)
 				}
 			}
 		}
@@ -104,7 +105,7 @@ func (c *Client) connWithAuth() error {
 	switch c.info.authnMode {
 	case "jwt":
 		if c.info.jwt == "" {
-			return fmt.Errorf("missing jwt file")
+			return errors.New("missing jwt file")
 		}
 		switch c.info.platform {
 		case "gcp":
@@ -151,10 +152,10 @@ func (c *Client) connWithAuth() error {
 			}
 			return nil
 		default:
-			return fmt.Errorf("Auto authentication mode for this platform is not supported. Please use jwt_file instead")
+			return errors.New("auto authentication mode for this platform is not supported. Please use jwt_file instead")
 		}
 	default:
-		return fmt.Errorf("Invalid authn_mode")
+		return errors.New("invalid authn_mode")
 	}
 }
 
@@ -164,10 +165,10 @@ func New() (*Client, error) {
 		info: ParseFlags(),
 	}
 	if c.info.platform != "gcp" {
-		return nil, fmt.Errorf("Can not support this platform now")
+		return nil, errors.New("can not support this platform now")
 	}
 	if c.info.apiVersion != "v2" {
-		return nil, fmt.Errorf("Can not suppoort this api version now")
+		return nil, errors.New("can not suppoort this api version now")
 	}
 
 	if err := c.parseNodeMatcher(); err != nil {
@@ -249,7 +250,9 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 	}
 
 	// post process response
-	printOutResponse(resp, c.info.configFile)
+	if err := printOutResponse(resp, c.info.configFile); err != nil {
+		return err
+	}
 
 	return nil
 }
