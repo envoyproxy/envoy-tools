@@ -28,7 +28,7 @@ type Flag struct {
 	requestYaml string
 	jwt         string
 	configFile  string
-	monitorFreq string
+	monitorFreq time.Duration
 }
 
 type Client struct {
@@ -50,7 +50,7 @@ func ParseFlags() Flag {
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
 	configFilePtr := flag.String("file_to_save_config", "", "the file name to save config")
-	monitorFreqPtr := flag.String("monitor_freq", "", "the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	monitorFreqPtr := flag.Duration("monitor_freq", 0, "the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 
 	flag.Parse()
 
@@ -199,17 +199,13 @@ func (c *Client) Run() error {
 
 	// run once or run with monitor mode
 	switch c.info.monitorFreq {
-	case "":
+	case 0:
 		if err := c.doRequest(streamClientStatus); err != nil {
 			return err
 		}
 		return nil
 	default:
-		freq, err := time.ParseDuration(c.info.monitorFreq)
-		if err != nil {
-			return err
-		}
-		ticker := time.NewTicker(freq)
+		ticker := time.NewTicker(c.info.monitorFreq)
 
 		// keep track of 'ctrl+c' to stop
 		s := make(chan os.Signal)
