@@ -13,9 +13,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
@@ -198,37 +195,31 @@ func (c *Client) Run() error {
 	}
 
 	// run once or run with monitor mode
-	switch c.info.monitorFreq {
-	case 0:
+	for {
 		if err := c.doRequest(streamClientStatus); err != nil {
 			return err
 		}
-		return nil
-	default:
-		ticker := time.NewTicker(c.info.monitorFreq)
+		if c.info.monitorFreq != 0 {
+			//log.Printf("Sent request on %v\n", time.Now())
+			time.Sleep(c.info.monitorFreq)
 
-		// keep track of 'ctrl+c' to stop
-		s := make(chan os.Signal)
-		signal.Notify(s, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			for {
-				select {
-				case <-s:
-					fmt.Println("Client Stopped")
-					os.Exit(0)
-				case t := <-ticker.C:
-					fmt.Printf("Sent request on %v\n", t)
-					if err = c.doRequest(streamClientStatus); err != nil {
-						return
+			/*
+				// keep track of 'ctrl+c' to stop
+				s := make(chan os.Signal)
+				signal.Notify(s, os.Interrupt, syscall.SIGTERM)
+				go func() {
+					for {
+						select {
+						case <-s:
+							log.Printf("Client Stopped")
+							os.Exit(0)
+						case t := <-ticker.C:
+						}
 					}
-				}
-			}
-		}()
-		time.Sleep(time.Minute)
-		if err != nil {
-			return err
+				}()*/
+		} else {
+			return nil
 		}
-		return nil
 	}
 }
 
