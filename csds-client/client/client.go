@@ -165,10 +165,10 @@ func New() (*Client, error) {
 		info: ParseFlags(),
 	}
 	if c.info.platform != "gcp" {
-		return nil, errors.New("can not support this platform now")
+		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 	}
 	if c.info.apiVersion != "v2" {
-		return nil, errors.New("can not suppoort this api version now")
+		return nil, fmt.Errorf("%s api version is not supported, list of supported api version: v2", c.info.apiVersion)
 	}
 
 	if err := c.parseNodeMatcher(); err != nil {

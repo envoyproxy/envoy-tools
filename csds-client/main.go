@@ -2,16 +2,16 @@ package main
 
 import (
 	"envoy-tools/csds-client/client"
-	"fmt"
+	"log"
 )
 
 func main() {
 	c, err := client.New()
 	if err != nil {
-		fmt.Printf("%v\n", err)
+		log.Fatal(err)
 	}
 
 	if err := c.Run(); err != nil {
-		fmt.Printf("%v\n", err)
+		log.Fatal(err)
 	}
 }
