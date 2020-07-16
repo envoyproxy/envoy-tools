@@ -21,8 +21,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 			requestFile: "./test_request.yaml",
 		},
 	}
-	err := c.parseNodeMatcher()
-	if err != nil {
+	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 	if c.nm == nil {
@@ -33,9 +32,8 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	getStr := string(get)
-	if getStr != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	if string(get) != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
@@ -72,8 +70,7 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
 	}
-	err := c.parseNodeMatcher()
-	if err != nil {
+	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 	if c.nm == nil {
@@ -84,13 +81,12 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	getStr := string(get)
-	if getStr != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	if string(get) != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// Capture the std out for testing
+// CaptureOutput captures the stdout for testing
 func CaptureOutput(f func()) string {
 	reader, writer, err := os.Pipe()
 	if err != nil {
@@ -127,8 +123,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	var response envoy_service_status_v2.ClientStatusResponse
-	err = protojson.Unmarshal(responsejson, &response)
-	if err != nil {
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
@@ -148,8 +143,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	var response envoy_service_status_v2.ClientStatusResponse
-	err = protojson.Unmarshal(responsejson, &response)
-	if err != nil {
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
