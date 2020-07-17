@@ -84,13 +84,10 @@ func (c *Client) parseNodeMatcher() error {
 	// check if required fields exist in nodematcher
 	switch c.info.platform {
 	case "gcp":
-		switch c.info.uri {
-		case "trafficdirector.googleapis.com:443":
-			keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
-			for _, key := range keys {
-				if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
-					return fmt.Errorf("missing field %v in NodeMatcher", key)
-				}
+		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
+		for _, key := range keys {
+			if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
+				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
 	}
@@ -202,23 +199,7 @@ func (c *Client) Run() error {
 			return err
 		}
 		if c.info.monitorInterval != 0 {
-			//log.Printf("Sent request on %v\n", time.Now())
 			time.Sleep(c.info.monitorInterval)
-
-			/*
-				// keep track of 'ctrl+c' to stop
-				s := make(chan os.Signal)
-				signal.Notify(s, os.Interrupt, syscall.SIGTERM)
-				go func() {
-					for {
-						select {
-						case <-s:
-							log.Printf("Client Stopped")
-							os.Exit(0)
-						case t := <-ticker.C:
-						}
-					}
-				}()*/
 		} else {
 			return nil
 		}

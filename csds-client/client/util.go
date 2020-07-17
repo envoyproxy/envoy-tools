@@ -212,7 +212,13 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 		if config.GetNode() != nil {
 			id = config.GetNode().GetId()
 			metadata := config.GetNode().GetMetadata().AsMap()
-			xdsType = metadata["TRAFFIC_DIRECTOR_XDS_STREAM_TYPE"].(string)
+
+			// control plane is expected to use "XDS_STREAM_TYPE" to communicate
+			// the stream type of the connected client in the response.
+			if metadata["XDS_STREAM_TYPE"] != nil {
+				xdsType = metadata["XDS_STREAM_TYPE"].(string)
+			}
+
 		}
 
 		if config.GetXdsConfig() == nil {
