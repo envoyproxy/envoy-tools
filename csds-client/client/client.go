@@ -17,15 +17,15 @@ import (
 )
 
 type Flag struct {
-	uri         string
-	platform    string
-	authnMode   string
-	apiVersion  string
-	requestFile string
-	requestYaml string
-	jwt         string
-	configFile  string
-	monitorFreq time.Duration
+	uri             string
+	platform        string
+	authnMode       string
+	apiVersion      string
+	requestFile     string
+	requestYaml     string
+	jwt             string
+	configFile      string
+	monitorInterval time.Duration
 }
 
 type Client struct {
@@ -46,21 +46,21 @@ func ParseFlags() Flag {
 	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
-	configFilePtr := flag.String("file_to_save_config", "", "the file name to save config")
-	monitorFreqPtr := flag.Duration("monitor_freq", 0, "the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
+	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 
 	flag.Parse()
 
 	f := Flag{
-		uri:         *uriPtr,
-		platform:    *platformPtr,
-		authnMode:   *authnModePtr,
-		apiVersion:  *apiVersionPtr,
-		requestFile: *requestFilePtr,
-		requestYaml: *requestYamlPtr,
-		jwt:         *jwtPtr,
-		configFile:  *configFilePtr,
-		monitorFreq: *monitorFreqPtr,
+		uri:             *uriPtr,
+		platform:        *platformPtr,
+		authnMode:       *authnModePtr,
+		apiVersion:      *apiVersionPtr,
+		requestFile:     *requestFilePtr,
+		requestYaml:     *requestYamlPtr,
+		jwt:             *jwtPtr,
+		configFile:      *configFilePtr,
+		monitorInterval: *monitorIntervalPtr,
 	}
 
 	return f
@@ -201,9 +201,9 @@ func (c *Client) Run() error {
 		if err := c.doRequest(streamClientStatus); err != nil {
 			return err
 		}
-		if c.info.monitorFreq != 0 {
+		if c.info.monitorInterval != 0 {
 			//log.Printf("Sent request on %v\n", time.Now())
-			time.Sleep(c.info.monitorFreq)
+			time.Sleep(c.info.monitorInterval)
 
 			/*
 				// keep track of 'ctrl+c' to stop

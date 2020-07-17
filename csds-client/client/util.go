@@ -195,7 +195,7 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 	return configStatus
 }
 
-// printOutResponse posts process response and print
+// printOutResponse processes response and print
 func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) error {
 	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
 	var hasXdsConfig bool

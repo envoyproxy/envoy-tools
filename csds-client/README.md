@@ -40,7 +40,7 @@ Options that are common are exposed/controlled through command line flags, and o
   * Because yaml is a superset of json, a json string may also be passed to ***-request_yaml***.
 * ***-file_to_save_config***: file name to save configs returned by csds response
    * If this flag is not specified, the configuration will be output to stdout by default.
-* ***-monitor_freq***: the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m, ...)
+* ***-monitor_interval***: the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m, ...)
    * If this flag is not specified, the client will run only once.
    * If this flag is specified and the interval is greater than 0, the client will run continuously and send request based on the interval. Use `Ctrl+C` to exit.
 
