@@ -197,25 +197,35 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 
 // printOutResponse processes response and print
 func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) error {
-	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
+	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
+		fmt.Printf("No xDS clients connected.\n")
+		return nil
+	} else {
+		fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
+	}
+
 	var hasXdsConfig bool
 
-	for _, config := range response.Config {
-		id := config.Node.GetId()
-		metadata := config.Node.GetMetadata().AsMap()
-		xdsType := metadata["TRAFFIC_DIRECTOR_XDS_STREAM_TYPE"]
-		if xdsType == nil {
-			xdsType = ""
+	for _, config := range response.GetConfig() {
+		var id string
+		var xdsType string
+		if config.GetNode() != nil {
+			id = config.GetNode().GetId()
+			metadata := config.GetNode().GetMetadata().AsMap()
+			xdsType = metadata["TRAFFIC_DIRECTOR_XDS_STREAM_TYPE"].(string)
 		}
 
 		if config.GetXdsConfig() == nil {
-			fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, "N/A")
+			if config.GetNode() != nil {
+				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, "N/A")
+			}
 		} else {
 			hasXdsConfig = true
 
 			// parse config status
 			configStatus := parseConfigStatus(config.GetXdsConfig())
 			fmt.Printf("%-50s %-30s ", id, xdsType)
+
 			for i := 0; i < len(configStatus); i++ {
 				if i == 0 {
 					fmt.Printf("%-30s \n", configStatus[i])
