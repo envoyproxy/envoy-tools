@@ -21,8 +21,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 			requestFile: "./test_request.yaml",
 		},
 	}
-	err := c.parseNodeMatcher()
-	if err != nil {
+	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 	if c.nm == nil {
@@ -33,9 +32,8 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	getStr := string(get)
-	if getStr != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	if string(get) != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
@@ -72,8 +70,7 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
 	}
-	err := c.parseNodeMatcher()
-	if err != nil {
+	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 	if c.nm == nil {
@@ -84,13 +81,12 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	getStr := string(get)
-	if getStr != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	if string(get) != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// Capture the std out for testing
+// CaptureOutput captures the stdout for testing
 func CaptureOutput(f func()) string {
 	reader, writer, err := os.Pipe()
 	if err != nil {
@@ -127,20 +123,19 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	var response envoy_service_status_v2.ClientStatusResponse
-	err = protojson.Unmarshal(responsejson, &response)
-	if err != nil {
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
 		printOutResponse(&response, "")
 	})
-	want := "Client ID                                          xDS stream type                Config                         \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
 }
 
-//test post processing response with node_id
+// test post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
@@ -148,14 +143,13 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	var response envoy_service_status_v2.ClientStatusResponse
-	err = protojson.Unmarshal(responsejson, &response)
-	if err != nil {
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
 		printOutResponse(&response, "test_config.json")
 	})
-	want := "Client ID                                          xDS stream type                Config                         \nSTALE                                              test_stream_type1              test_config.json               \n"
+	want := "Client ID                                          xDS stream type                Config Status                  \ntest_nodeid                                        test_stream_type1              RDS   STALE                    \n                                                                                  CDS   STALE                    \nConfig has been saved to test_config.json\n"
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}

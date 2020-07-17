@@ -6,28 +6,26 @@ import (
 
 	"context"
 	"crypto/x509"
+	"errors"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
 type Flag struct {
-	uri         string
-	platform    string
-	authnMode   string
-	apiVersion  string
-	requestFile string
-	requestYaml string
-	jwt         string
-	configFile  string
-	monitorFreq string
+	uri             string
+	platform        string
+	authnMode       string
+	apiVersion      string
+	requestFile     string
+	requestYaml     string
+	jwt             string
+	configFile      string
+	monitorInterval time.Duration
 }
 
 type Client struct {
@@ -48,30 +46,32 @@ func ParseFlags() Flag {
 	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
-	configFilePtr := flag.String("file_to_save_config", "", "the file name to save config")
-	monitorFreqPtr := flag.String("monitor_freq", "", "the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
+	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 
 	flag.Parse()
 
 	f := Flag{
-		uri:         *uriPtr,
-		platform:    *platformPtr,
-		authnMode:   *authnModePtr,
-		apiVersion:  *apiVersionPtr,
-		requestFile: *requestFilePtr,
-		requestYaml: *requestYamlPtr,
-		jwt:         *jwtPtr,
-		configFile:  *configFilePtr,
-		monitorFreq: *monitorFreqPtr,
+		uri:             *uriPtr,
+		platform:        *platformPtr,
+		authnMode:       *authnModePtr,
+		apiVersion:      *apiVersionPtr,
+		requestFile:     *requestFilePtr,
+		requestYaml:     *requestYamlPtr,
+		jwt:             *jwtPtr,
+		configFile:      *configFilePtr,
+		monitorInterval: *monitorIntervalPtr,
 	}
 
 	return f
 }
 
-// parseNodeMatcher parses the csds request yaml to nodematcher
+// parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
+// if -request_file and -request_yaml are both set, the values in this yaml string will override and
+// merge with the request loaded from -request_file
 func (c *Client) parseNodeMatcher() error {
 	if c.info.requestFile == "" && c.info.requestYaml == "" {
-		return fmt.Errorf("missing request yaml")
+		return errors.New("missing request yaml")
 	}
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
@@ -84,13 +84,10 @@ func (c *Client) parseNodeMatcher() error {
 	// check if required fields exist in nodematcher
 	switch c.info.platform {
 	case "gcp":
-		switch c.info.uri {
-		case "trafficdirector.googleapis.com:443":
-			keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
-			for _, key := range keys {
-				if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
-					return fmt.Errorf("Missing field %v in NodeMatcher", key)
-				}
+		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
+		for _, key := range keys {
+			if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
+				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
 	}
@@ -104,7 +101,7 @@ func (c *Client) connWithAuth() error {
 	switch c.info.authnMode {
 	case "jwt":
 		if c.info.jwt == "" {
-			return fmt.Errorf("missing jwt file")
+			return errors.New("missing jwt file")
 		}
 		switch c.info.platform {
 		case "gcp":
@@ -151,10 +148,10 @@ func (c *Client) connWithAuth() error {
 			}
 			return nil
 		default:
-			return fmt.Errorf("Auto authentication mode for this platform is not supported. Please use jwt_file instead")
+			return errors.New("auto authentication mode for this platform is not supported. Please use jwt_file instead")
 		}
 	default:
-		return fmt.Errorf("Invalid authn_mode")
+		return errors.New("invalid authn_mode")
 	}
 }
 
@@ -164,14 +161,14 @@ func New() (*Client, error) {
 		info: ParseFlags(),
 	}
 	if c.info.platform != "gcp" {
-		return c, fmt.Errorf("Can not support this platform now")
+		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 	}
 	if c.info.apiVersion != "v2" {
-		return c, fmt.Errorf("Can not suppoort this api version now")
+		return nil, fmt.Errorf("%s api version is not supported, list of supported api version: v2", c.info.apiVersion)
 	}
 
 	if err := c.parseNodeMatcher(); err != nil {
-		return c, err
+		return nil, err
 	}
 
 	return c, nil
@@ -197,41 +194,15 @@ func (c *Client) Run() error {
 	}
 
 	// run once or run with monitor mode
-	switch c.info.monitorFreq {
-	case "":
+	for {
 		if err := c.doRequest(streamClientStatus); err != nil {
 			return err
 		}
-		return nil
-	default:
-		freq, err := time.ParseDuration(c.info.monitorFreq)
-		if err != nil {
-			return err
+		if c.info.monitorInterval != 0 {
+			time.Sleep(c.info.monitorInterval)
+		} else {
+			return nil
 		}
-		ticker := time.NewTicker(freq)
-
-		// keep track of 'ctrl+c' to stop
-		s := make(chan os.Signal)
-		signal.Notify(s, os.Interrupt, syscall.SIGTERM)
-		go func() {
-			for {
-				select {
-				case <-s:
-					fmt.Println("Client Stopped")
-					os.Exit(0)
-				case t := <-ticker.C:
-					fmt.Printf("Sent request on %v\n", t)
-					if err = c.doRequest(streamClientStatus); err != nil {
-						return
-					}
-				}
-			}
-		}()
-		time.Sleep(time.Minute)
-		if err != nil {
-			return err
-		}
-		return nil
 	}
 }
 
@@ -249,7 +220,9 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 	}
 
 	// post process response
-	printOutResponse(resp, c.info.configFile)
+	if err := printOutResponse(resp, c.info.configFile); err != nil {
+		return err
+	}
 
 	return nil
 }

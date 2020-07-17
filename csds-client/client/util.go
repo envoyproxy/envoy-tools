@@ -10,13 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/awalterschulze/gographviz"
-	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/ghodss/yaml"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"io"
 	"io/ioutil"
 	"os"
@@ -24,6 +17,14 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+
+	"github.com/awalterschulze/gographviz"
+	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/ghodss/yaml"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 // isJson checks if str is a valid json format string
@@ -146,6 +147,8 @@ func (r *TypeResolver) FindMessageByName(message protoreflect.FullName) (protore
 }
 
 // FindMessageByURL links the message type url to the specific message type
+// TODO: If there's other message type can be passed in google.protobuf.Any, the typeUrl and
+//  messageType need to be added to this method to make sure it can be parsed and output correctly
 func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
 	switch url {
 	case "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager":
@@ -181,53 +184,105 @@ type GraphData struct {
 	relations []map[string]*treeset.Set
 }
 
-// printOutResponse posts process response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) {
-	fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config")
-	for _, config := range response.Config {
-		id := config.Node.GetId()
-		metadata := config.Node.GetMetadata().AsMap()
-		xdsType := metadata["TRAFFIC_DIRECTOR_XDS_STREAM_TYPE"]
-		if xdsType == nil {
-			xdsType = ""
+// parseConfigStatus parses each xds config status to string
+func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []string {
+	var configStatus []string
+	for _, perXdsConfig := range xdsConfig {
+		status := perXdsConfig.GetStatus().String()
+		var xds string
+		if perXdsConfig.GetClusterConfig() != nil {
+			xds = "CDS"
+		} else if perXdsConfig.GetListenerConfig() != nil {
+			xds = "LDS"
+		} else if perXdsConfig.GetRouteConfig() != nil {
+			xds = "RDS"
+		} else if perXdsConfig.GetScopedRouteConfig() != nil {
+			xds = "SRDS"
+		}
+		if status != "" && xds != "" {
+			configStatus = append(configStatus, xds+"   "+status)
+		}
+	}
+	return configStatus
+}
+
+// printOutResponse processes response and print
+func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) error {
+	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
+		fmt.Printf("No xDS clients connected.\n")
+		return nil
+	} else {
+		fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
+	}
+
+	var hasXdsConfig bool
+
+	for _, config := range response.GetConfig() {
+		var id string
+		var xdsType string
+		if config.GetNode() != nil {
+			id = config.GetNode().GetId()
+			metadata := config.GetNode().GetMetadata().AsMap()
+
+			// control plane is expected to use "XDS_STREAM_TYPE" to communicate
+			// the stream type of the connected client in the response.
+			if metadata["XDS_STREAM_TYPE"] != nil {
+				xdsType = metadata["XDS_STREAM_TYPE"].(string)
+			}
 		}
 
-		var configFile string
 		if config.GetXdsConfig() == nil {
-			configFile = "N/A"
-			fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
+			if config.GetNode() != nil {
+				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, "N/A")
+			}
 		} else {
-			// parse response to json
-			// format the json and resolve google.protobuf.Any types
-			m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
-			out, err := m.Marshal(response)
-			if err != nil {
-				fmt.Printf("%v", err)
-			}
-			if err := parseXdsRelationship(out); err != nil {
-				fmt.Printf("%v\n",err)
-				return
-			}
-			if fileName == "" {
-				// output the configuration to stdout by default
-				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
-				fmt.Println(string(out))
-			} else {
-				// write the configuration to the file
-				configFile = fileName
-				f, err := os.Create(configFile)
-				if err != nil {
-					fmt.Println(err)
+			hasXdsConfig = true
+
+			// parse config status
+			configStatus := parseConfigStatus(config.GetXdsConfig())
+			fmt.Printf("%-50s %-30s ", id, xdsType)
+
+			for i := 0; i < len(configStatus); i++ {
+				if i == 0 {
+					fmt.Printf("%-30s \n", configStatus[i])
+				} else {
+					fmt.Printf("%-50s %-30s %-30s \n", "", "", configStatus[i])
 				}
-				defer f.Close()
-				_, err = f.Write(out)
-				if err != nil {
-					fmt.Printf("%v", err)
-				}
-				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, configFile)
+			}
+			if len(configStatus) == 0 {
+				fmt.Printf("\n")
 			}
 		}
 	}
+
+	if hasXdsConfig {
+		// parse response to json
+		// format the json and resolve google.protobuf.Any types
+		m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
+		out, err := m.Marshal(response)
+		if err != nil {
+			return err
+		}
+
+		if fileName == "" {
+			// output the configuration to stdout by default
+			fmt.Println("Detailed Config:")
+			fmt.Println(string(out))
+		} else {
+			// write the configuration to the file
+			f, err := os.Create(fileName)
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			_, err = f.Write(out)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("Config has been saved to %v\n", fileName)
+		}
+	}
+	return nil
 }
 
 func parseXdsRelationship(js []byte) error {
