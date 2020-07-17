@@ -9,17 +9,17 @@ For now, this initial version of this CSDS client only support GCP's [Traffic Di
 
 # Running
 * run with `go run main.go <flag>`, e.g. <br/><br/>
-   * running with auto authentication mode, run with 
+   * auto authentication mode
    ```
    go run main.go -service_uri <uri> -cloud_platform gcp -authn_mode auto -api_version v2 -request_file <path to csds request yaml file>
   ```
-   * running with jwt authentication mode, run with 
+   * jwt authentication mode
    ```
    go run main.go -service_uri <uri> -cloud_platform gcp -authn_mode jwt -api_version v2 -request_file <path to csds request yaml file> -jwt_file <path to jwt key>
   ```
 
 # Usage
-Options that are common can be exposed/controlled through command line flags, and options that are specific to control planes can be configured in a yaml file that can be parsed into ClientStatuRequest.  
+Options that are common are exposed/controlled through command line flags, and options that are specific to control planes are configured in a yaml file that are parsed into ClientStatusRequest.  
 ## Flags
 * ***-service_uri***: the uri of the service to connect to 
    * If this flag is not specified, it will be set to *trafficdirector.googleapis.com:443* as default.
@@ -38,11 +38,11 @@ Options that are common can be exposed/controlled through command line flags, an
 * ***-request_yaml***: yaml string that defines the csds request
   * If ***-request_file*** is also set, the values in this yaml string will override and merge with the request loaded from ***-request_file***. 
   * Because yaml is a superset of json, a json string may also be passed to ***-request_yaml***.
-* ***-file_to_save_config***: file name to save configuration
+* ***-file_to_save_config***: file name to save configs returned by csds response
    * If this flag is not specified, the configuration will be output to stdout by default.
 * ***-monitor_freq***: the frequency of sending request in monitor mode (e.g. 500ms, 2s, 1m, ...)
    * If this flag is not specified, the client will run only once.
-   * If this flag is specified, the client will run continuously and send request frequently. Use `Ctrl+C` to exit.
+   * If this flag is specified and the interval is greater than 0, the client will run continuously and send request based on the interval. Use `Ctrl+C` to exit.
 
 ## Output
 ```
@@ -50,8 +50,8 @@ Client ID                      xDS stream type                Config Status
 <client_id>                    ADS                            LDS SYNCED
                                                               RDS SYNCED
                                                               CDS STALE
-(Detail Config:
- <detail config>)
+(Detailed Config:
+ <detailed config>)
 OR
 (Config has been saved to <file_to_save_config>)
 ```

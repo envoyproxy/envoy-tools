@@ -141,7 +141,8 @@ func (r *TypeResolver) FindMessageByName(message protoreflect.FullName) (protore
 }
 
 // FindMessageByURL links the message type url to the specific message type
-// TODO: If there's other message type can be passed in google.protobuf.Any, the typeUrl and messageType need to be added to this method to make sure it can be parsed and output correctly
+// TODO: If there's other message type can be passed in google.protobuf.Any, the typeUrl and
+//  messageType need to be added to this method to make sure it can be parsed and output correctly
 func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
 	switch url {
 	case "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager":
@@ -239,7 +240,7 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 
 		if fileName == "" {
 			// output the configuration to stdout by default
-			fmt.Println("Detail Config:")
+			fmt.Println("Detailed Config:")
 			fmt.Println(string(out))
 		} else {
 			// write the configuration to the file

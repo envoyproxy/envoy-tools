@@ -66,7 +66,9 @@ func ParseFlags() Flag {
 	return f
 }
 
-// parseNodeMatcher parses the csds request yaml to nodematcher
+// parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
+// if -request_file and -request_yaml are both set, the values in this yaml string will override and
+// merge with the request loaded from -request_file
 func (c *Client) parseNodeMatcher() error {
 	if c.info.requestFile == "" && c.info.requestYaml == "" {
 		return errors.New("missing request yaml")
