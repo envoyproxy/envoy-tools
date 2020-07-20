@@ -127,7 +127,9 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
-		printOutResponse(&response, "")
+		if err := printOutResponse(&response, ""); err != nil {
+			t.Errorf("Print out response error: %v", err)
+		}
 	})
 	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
 	if out != want {
@@ -147,7 +149,9 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
-		printOutResponse(&response, "test_config.json")
+		if err := printOutResponse(&response, "test_config.json"); err != nil {
+			t.Errorf("Print out response error: %v", err)
+		}
 	})
 	want := "Client ID                                          xDS stream type                Config Status                  \ntest_nodeid                                        test_stream_type1              RDS   STALE                    \n                                                                                  CDS   STALE                    \nConfig has been saved to test_config.json\n"
 	if out != want {

@@ -4,7 +4,7 @@
       "node": {
         "id": "test_node_1",
         "metadata": {
-          "TRAFFIC_DIRECTOR_XDS_STREAM_TYPE": "test_stream_type1"
+          "XDS_STREAM_TYPE": "test_stream_type1"
         }
       }
     },
@@ -12,7 +12,7 @@
       "node": {
         "id": "test_node_2",
         "metadata": {
-          "TRAFFIC_DIRECTOR_XDS_STREAM_TYPE": "test_stream_type2"
+          "XDS_STREAM_TYPE": "test_stream_type2"
         }
       }
     },
@@ -20,7 +20,7 @@
       "node": {
         "id": "test_node_3",
         "metadata": {
-          "TRAFFIC_DIRECTOR_XDS_STREAM_TYPE": "test_stream_type3"
+          "XDS_STREAM_TYPE": "test_stream_type3"
         }
       }
     }
