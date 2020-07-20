@@ -174,7 +174,7 @@ func New() (*Client, error) {
 	return c, nil
 }
 
-// Run connects the client to the uri and call doRequest
+// Run connects the client to the uri and calls doRequest
 func (c *Client) Run() error {
 	if err := c.connWithAuth(); err != nil {
 		return err
