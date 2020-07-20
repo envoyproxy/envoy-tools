@@ -6,18 +6,11 @@ import (
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"time"
 
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strconv"
-
 	"github.com/awalterschulze/gographviz"
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/ghodss/yaml"
@@ -25,6 +18,13 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
 )
 
 // isJson checks if str is a valid json format string
@@ -264,6 +264,8 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			return err
 		}
 
+		//parseXdsRelationship(out)
+
 		if fileName == "" {
 			// output the configuration to stdout by default
 			fmt.Println("Detailed Config:")
@@ -282,6 +284,7 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			fmt.Printf("Config has been saved to %v\n", fileName)
 		}
 	}
+	fmt.Printf("%v\n",time.Now())
 	return nil
 }
 
@@ -320,7 +323,7 @@ func parseXdsRelationship(js []byte) error {
 									rdsSet.Add(rdsName)
 								}
 							}
-							ldsToRds[id] = rdsSet
+							ldsToRds[name] = rdsSet
 						}
 					}
 					break
@@ -347,7 +350,7 @@ func parseXdsRelationship(js []byte) error {
 									}
 								}
 							}
-							rdsToCds[id] = cdsSet
+							rdsToCds[name] = cdsSet
 						}
 					}
 					break
@@ -365,21 +368,6 @@ func parseXdsRelationship(js []byte) error {
 		}
 	}
 
-	for lds, rdsSet := range ldsToRds {
-		rdsIdSet := treeset.NewWithStringComparator()
-		for _, name := range rdsSet.Values() {
-			rdsIdSet.Add(rds[name.(string)])
-		}
-		ldsToRds[lds] = rdsIdSet
-	}
-	for rds, cdsSet := range rdsToCds {
-		cdsIdSet := treeset.NewWithStringComparator()
-		for _, name := range cdsSet.Values() {
-			cdsIdSet.Add(cds[name.(string)])
-		}
-		rdsToCds[rds] = cdsIdSet
-	}
-
 	gData := GraphData{
 		nodes:     []map[string]string{lds, rds, cds},
 		relations: []map[string]*treeset.Set{ldsToRds, rdsToCds},
@@ -387,8 +375,6 @@ func parseXdsRelationship(js []byte) error {
 	if err := generateGraph(gData); err != nil {
 		return err
 	}
-	fmt.Printf("%v\n%v\n%v\n", lds, rds, cds)
-	fmt.Printf("%v\n%v\n", ldsToRds, rdsToCds)
 	return nil
 }
 
@@ -424,8 +410,8 @@ func generateGraph(data GraphData) error {
 	}
 
 	for _, xDS := range data.nodes {
-		for _, node := range xDS {
-			if err := graph.AddNode("G", node, nil); err != nil {
+		for name, node := range xDS {
+			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node}); err != nil {
 				return err
 			}
 		}
@@ -433,7 +419,7 @@ func generateGraph(data GraphData) error {
 	for _, relations := range data.relations {
 		for src, set := range relations {
 			for _, dst := range set.Values() {
-				if err := graph.AddEdge(src, dst.(string), true, nil); err != nil {
+				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, nil); err != nil {
 					return err
 				}
 			}

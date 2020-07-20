@@ -1,7 +1,7 @@
 package client
 
 import (
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 
 	"context"
@@ -30,7 +30,7 @@ type Flag struct {
 
 type Client struct {
 	cc         *grpc.ClientConn
-	csdsClient csdspb.ClientStatusDiscoveryServiceClient
+	csdsClient csdspb_v2.ClientStatusDiscoveryServiceClient
 
 	nm   []*envoy_type_matcher.NodeMatcher
 	md   metadata.MD
@@ -181,7 +181,7 @@ func (c *Client) Run() error {
 	}
 	defer c.cc.Close()
 
-	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
+	c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
 	var ctx context.Context
 	if c.md != nil {
 		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
@@ -207,9 +207,9 @@ func (c *Client) Run() error {
 }
 
 // doRequest sends request and print out the parsed response
-func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryService_StreamClientStatusClient) error {
+func (c *Client) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
-	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
+	req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nm}
 	if err := streamClientStatus.Send(req); err != nil {
 		return err
 	}
