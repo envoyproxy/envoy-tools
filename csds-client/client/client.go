@@ -164,7 +164,7 @@ func New() (*Client, error) {
 		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 	}
 	if c.info.apiVersion != "v2" {
-		return nil, fmt.Errorf("%s api version is not supported, list of supported api version: v2", c.info.apiVersion)
+		return nil, fmt.Errorf("%s api version is not supported, list of supported api versions: v2", c.info.apiVersion)
 	}
 
 	if err := c.parseNodeMatcher(); err != nil {
@@ -174,7 +174,7 @@ func New() (*Client, error) {
 	return c, nil
 }
 
-// Run connects the client to the uri and call doRequest based on monitor_freq flag
+// Run connects the client to the uri and calls doRequest
 func (c *Client) Run() error {
 	if err := c.connWithAuth(); err != nil {
 		return err
