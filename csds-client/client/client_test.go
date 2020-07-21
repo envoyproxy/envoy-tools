@@ -17,8 +17,8 @@ import (
 // test parsing -request_file to nodematcher
 func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := Client{
-		info: Flag{
-			requestFile: "./test_request.yaml",
+		info: ClientOptions{
+			RequestFile: "./test_request.yaml",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
@@ -37,8 +37,8 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 // test parsing -request_yaml to nodematcher
 func TestParseNodeMatcherWithString(t *testing.T) {
 	c := Client{
-		info: Flag{
-			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
+		info: ClientOptions{
+			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
 	err := c.parseNodeMatcher()
@@ -58,9 +58,9 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 // test parsing -request_file and -request_yaml to nodematcher
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	c := Client{
-		info: Flag{
-			requestFile: "./test_request.yaml",
-			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
+		info: ClientOptions{
+			RequestFile: "./test_request.yaml",
+			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
