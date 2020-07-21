@@ -1,7 +1,7 @@
 package client
 
 import (
-	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 
 	"context"
@@ -26,11 +26,12 @@ type Flag struct {
 	jwt             string
 	configFile      string
 	monitorInterval time.Duration
+	visualization   bool
 }
 
 type Client struct {
 	cc         *grpc.ClientConn
-	csdsClient csdspb_v2.ClientStatusDiscoveryServiceClient
+	csdsClient csdspb.ClientStatusDiscoveryServiceClient
 
 	nm   []*envoy_type_matcher.NodeMatcher
 	md   metadata.MD
@@ -48,6 +49,7 @@ func ParseFlags() Flag {
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
 	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
 	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	visualizationPtr := flag.Bool("visualization", false, "option to visualize the relationship between xDS")
 
 	flag.Parse()
 
@@ -61,6 +63,7 @@ func ParseFlags() Flag {
 		jwt:             *jwtPtr,
 		configFile:      *configFilePtr,
 		monitorInterval: *monitorIntervalPtr,
+		visualization:   *visualizationPtr,
 	}
 
 	return f
@@ -181,7 +184,7 @@ func (c *Client) Run() error {
 	}
 	defer c.cc.Close()
 
-	c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
+	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
 	var ctx context.Context
 	if c.md != nil {
 		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
@@ -207,9 +210,9 @@ func (c *Client) Run() error {
 }
 
 // doRequest sends request and print out the parsed response
-func (c *Client) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient) error {
+func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
-	req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nm}
+	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
 	if err := streamClientStatus.Send(req); err != nil {
 		return err
 	}
@@ -220,7 +223,7 @@ func (c *Client) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoverySer
 	}
 
 	// post process response
-	if err := printOutResponse(resp, c.info.configFile); err != nil {
+	if err := printOutResponse(resp, c.info.configFile, c.info.visualization); err != nil {
 		return err
 	}
 

@@ -6,7 +6,6 @@ import (
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-	"time"
 
 	"bytes"
 	"encoding/json"
@@ -179,11 +178,6 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
-type GraphData struct {
-	nodes     []map[string]string
-	relations []map[string]*treeset.Set
-}
-
 // parseConfigStatus parses each xds config status to string
 func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []string {
 	var configStatus []string
@@ -207,7 +201,7 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) error {
+func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string, visualization bool) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -264,8 +258,6 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			return err
 		}
 
-		//parseXdsRelationship(out)
-
 		if fileName == "" {
 			// output the configuration to stdout by default
 			fmt.Println("Detailed Config:")
@@ -283,16 +275,59 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 			}
 			fmt.Printf("Config has been saved to %v\n", fileName)
 		}
+
+		// call visualize to enable visualization
+		if visualization {
+			if err := visualize(out); err != nil {
+				return err
+			}
+		}
 	}
-	fmt.Printf("%v\n",time.Now())
 	return nil
 }
 
-func parseXdsRelationship(js []byte) error {
+// visualize calls parseXdsRelationship and use the result to visualize
+func visualize(config []byte) error {
+	graphData, err := parseXdsRelationship(config)
+	if err != nil {
+		return err
+	}
+	dot, err := generateGraph(graphData)
+	if err != nil {
+		return err
+	}
+
+	url := "http://dreampuf.github.io/GraphvizOnline/#" + dot
+	if err := openBrowser(url); err != nil {
+		return err
+	}
+
+	// save dot to file
+	f, err := os.Create("config_graph.dot")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write([]byte(dot))
+	if err != nil {
+		return err
+	}
+	fmt.Println("Config graph has been saved to config_graph.dot")
+	return nil
+}
+
+// struct stores the nodes and edges maps of graph
+type GraphData struct {
+	nodes     []map[string]string
+	relations []map[string]*treeset.Set
+}
+
+// parseXdsRelationship parses relationship between xds and stores them in GraphData
+func parseXdsRelationship(js []byte) (GraphData, error) {
 	var data map[string]interface{}
 	err := json.Unmarshal(js, &data)
 	if err != nil {
-		return err
+		return GraphData{}, err
 	}
 	lds := make(map[string]string)
 	rds := make(map[string]string)
@@ -372,12 +407,42 @@ func parseXdsRelationship(js []byte) error {
 		nodes:     []map[string]string{lds, rds, cds},
 		relations: []map[string]*treeset.Set{ldsToRds, rdsToCds},
 	}
-	if err := generateGraph(gData); err != nil {
-		return err
-	}
-	return nil
+
+	return gData, nil
 }
 
+// generateGraph generates dot string based on GraphData
+func generateGraph(data GraphData) (string, error) {
+	graphAst, err := gographviz.ParseString(`digraph G {}`)
+	if err != nil {
+		return "", err
+	}
+	graph := gographviz.NewGraph()
+	if err := gographviz.Analyse(graphAst, graph); err != nil {
+		return "", err
+	}
+
+	for _, xDS := range data.nodes {
+		for name, node := range xDS {
+			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node}); err != nil {
+				return "", err
+			}
+		}
+	}
+	for _, relations := range data.relations {
+		for src, set := range relations {
+			for _, dst := range set.Values() {
+				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, nil); err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+
+	return graph.String(), nil
+}
+
+// openBrowser opens url in browser based on platform
 func openBrowser(url string) error {
 	var err error
 	switch runtime.GOOS {
@@ -394,42 +459,6 @@ func openBrowser(url string) error {
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func generateGraph(data GraphData) error {
-	graphAst, err := gographviz.ParseString(`digraph G {}`)
-	if err != nil {
-		return err
-	}
-	graph := gographviz.NewGraph()
-	if err := gographviz.Analyse(graphAst, graph); err != nil {
-		return err
-	}
-
-	for _, xDS := range data.nodes {
-		for name, node := range xDS {
-			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node}); err != nil {
-				return err
-			}
-		}
-	}
-	for _, relations := range data.relations {
-		for src, set := range relations {
-			for _, dst := range set.Values() {
-				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, nil); err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	fmt.Printf("%v\n", graph.String())
-
-	url := "http://dreampuf.github.io/GraphvizOnline/#" + graph.String()
-	if err := openBrowser(url); err != nil {
 		return err
 	}
 	return nil
