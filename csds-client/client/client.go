@@ -30,7 +30,7 @@ type ClientOptions struct {
 
 type Client struct {
 	cc         *grpc.ClientConn
-	csdsClient csdspb_v2.ClientStatusDiscoveryServiceClient
+	csdsClient interface{}
 
 	nm   []*envoy_type_matcher.NodeMatcher
 	md   metadata.MD
@@ -152,16 +152,22 @@ func (c *Client) Run() error {
 	}
 	defer c.cc.Close()
 
-	c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
 	var ctx context.Context
 	if c.md != nil {
 		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
 	} else {
 		ctx = context.Background()
 	}
-	streamClientStatus, err := c.csdsClient.StreamClientStatus(ctx)
-	if err != nil {
-		return err
+
+	var streamClientStatus interface{}
+	var err error
+	switch c.info.ApiVersion{
+	case "v2":
+		c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
+		streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	// run once or run with monitor mode
@@ -178,21 +184,23 @@ func (c *Client) Run() error {
 }
 
 // doRequest sends request and print out the parsed response
-func (c *Client) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient) error {
+func (c *Client) doRequest(streamClientStatus interface{}) error {
+	switch streamClientStatus.(type){
+	case csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient:
+		req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nm}
+		streamclientstatusV2 :=streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient)
+		if err := streamclientstatusV2.Send(req); err != nil {
+			return err
+		}
 
-	req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nm}
-	if err := streamClientStatus.Send(req); err != nil {
-		return err
-	}
-
-	resp, err := streamClientStatus.Recv()
-	if err != nil {
-		return err
-	}
-
-	// post process response
-	if err := printOutResponse(resp, c.info.ConfigFile, c.info.Visualization); err != nil {
-		return err
+		resp, err := streamclientstatusV2.Recv()
+		if err != nil {
+			return err
+		}
+		// post process response
+		if err := printOutResponse(resp, c.info.ConfigFile, c.info.Visualization); err != nil {
+			return err
+		}
 	}
 
 	return nil

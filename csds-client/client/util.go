@@ -4,7 +4,6 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 
 	"bytes"
@@ -178,114 +177,6 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
-// parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []string {
-	var configStatus []string
-	for _, perXdsConfig := range xdsConfig {
-		status := perXdsConfig.GetStatus().String()
-		var xds string
-		if perXdsConfig.GetClusterConfig() != nil {
-			xds = "CDS"
-		} else if perXdsConfig.GetListenerConfig() != nil {
-			xds = "LDS"
-		} else if perXdsConfig.GetRouteConfig() != nil {
-			xds = "RDS"
-		} else if perXdsConfig.GetScopedRouteConfig() != nil {
-			xds = "SRDS"
-		}
-		if status != "" && xds != "" {
-			configStatus = append(configStatus, xds+"   "+status)
-		}
-	}
-	return configStatus
-}
-
-// printOutResponse processes response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string, visualization bool) error {
-	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
-		fmt.Printf("No xDS clients connected.\n")
-		return nil
-	} else {
-		fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
-	}
-
-	var hasXdsConfig bool
-
-	for _, config := range response.GetConfig() {
-		var id string
-		var xdsType string
-		if config.GetNode() != nil {
-			id = config.GetNode().GetId()
-			metadata := config.GetNode().GetMetadata().AsMap()
-
-			// control plane is expected to use "XDS_STREAM_TYPE" to communicate
-			// the stream type of the connected client in the response.
-			if metadata["XDS_STREAM_TYPE"] != nil {
-				xdsType = metadata["XDS_STREAM_TYPE"].(string)
-			}
-		}
-
-		if config.GetXdsConfig() == nil {
-			if config.GetNode() != nil {
-				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, "N/A")
-			}
-		} else {
-			hasXdsConfig = true
-
-			// parse config status
-			configStatus := parseConfigStatus(config.GetXdsConfig())
-			fmt.Printf("%-50s %-30s ", id, xdsType)
-
-			for i := 0; i < len(configStatus); i++ {
-				if i == 0 {
-					fmt.Printf("%-30s \n", configStatus[i])
-				} else {
-					fmt.Printf("%-50s %-30s %-30s \n", "", "", configStatus[i])
-				}
-			}
-			if len(configStatus) == 0 {
-				fmt.Printf("\n")
-			}
-		}
-	}
-
-	if hasXdsConfig {
-		// parse response to json
-		// format the json and resolve google.protobuf.Any types
-		m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
-		out, err := m.Marshal(response)
-		if err != nil {
-			return err
-		}
-
-		if fileName == "" {
-			// output the configuration to stdout by default
-			fmt.Println("Detailed Config:")
-			fmt.Println(string(out))
-		} else {
-			// write the configuration to the file
-			f, err := os.Create(fileName)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			_, err = f.Write(out)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("Config has been saved to %v\n", fileName)
-		}
-
-		// call visualize to enable visualization
-		if visualization {
-			if err := visualize(out); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // visualize calls parseXdsRelationship and use the result to visualize
 func visualize(config []byte) error {
 	graphData, err := parseXdsRelationship(config)
@@ -452,8 +343,5 @@ func openBrowser(url string) error {
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
