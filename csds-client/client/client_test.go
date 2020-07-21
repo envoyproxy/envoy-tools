@@ -5,11 +5,11 @@ import (
 
 	"bytes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/encoding/prototext"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -27,13 +27,10 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if c.nm == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nm[0])
-	if err != nil {
-		t.Errorf("Parse NodeMatcher Error: %v", err)
-	}
-	if string(get) != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
+	want := "node_id:{exact:\"fake_node_id\"}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}value:{string_match:{exact:\"fake_project_number\"}}}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"}value:{string_match:{exact:\"fake_network_name\"}}}"
+	get := strings.Replace(c.nm[0].String(), " ", "", -1)
+	if get != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", get, want)
 	}
 }
 
@@ -51,14 +48,10 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if c.nm == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nm[0])
-	if err != nil {
-		t.Errorf("Parse NodeMatcher Error: %v", err)
-	}
-	getStr := string(get)
-	if getStr != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	want := "node_id:{exact:\"fake_node_id\"}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}value:{string_match:{exact:\"fake_project_number\"}}}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"}value:{string_match:{exact:\"fake_network_name\"}}}"
+	get := strings.Replace(c.nm[0].String(), " ", "", -1)
+	if get != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", get, want)
 	}
 }
 
@@ -76,13 +69,10 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if c.nm == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id_from_cli\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nm[0])
-	if err != nil {
-		t.Errorf("Parse NodeMatcher Error: %v", err)
-	}
-	if string(get) != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
+	want := "node_id:{exact:\"fake_node_id_from_cli\"}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}value:{string_match:{exact:\"fake_project_number\"}}}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"}value:{string_match:{exact:\"fake_network_name\"}}}"
+	get := strings.Replace(c.nm[0].String(), " ", "", -1)
+	if get != want {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", get, want)
 	}
 }
 
@@ -127,7 +117,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
-		if err := printOutResponse(&response, ""); err != nil {
+		if err := printOutResponse(&response, "", false); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -149,7 +139,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := CaptureOutput(func() {
-		if err := printOutResponse(&response, "test_config.json"); err != nil {
+		if err := printOutResponse(&response, "test_config.json", false); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -163,7 +153,29 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Write config to file failure: %v", err)
 	}
-	if string(outputjson) != string(responsejson) {
+	if strings.Replace(string(outputjson), " ", "", -1) != strings.Replace(string(responsejson), " ", "", -1) {
 		t.Errorf("Output formatted error")
+	}
+}
+
+// test parsing xds relationship from config and generating .dot
+func TestVisualization(t *testing.T) {
+	filename, _ := filepath.Abs("./response_for_visualization.json")
+	responsejson, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	graphData, err := parseXdsRelationship(responsejson)
+	if err != nil {
+		t.Errorf("Parse xDS relationship failure: %v", err)
+	}
+	dot, err := generateGraph(graphData)
+	if err != nil {
+		t.Errorf("Generate graph failuer:%v", err)
+	}
+	want := "digraph G {\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\";\n \\\"test_lds_0\\\"->\\\"test_rds_1\\\";\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\";\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\";\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\";\n\\\"test_cds_0\\\" [ label=CDS0 ];\n\\\"test_cds_1\\\" [ label=CDS1 ];\n\\\"test_lds_0\\\" [ label=LDS0 ];\n\\\"test_rds_0\\\" [ label=RDS0 ];\n\\\"test_rds_1\\\" [ label=RDS1 ];\n\n}\n"
+	out := strings.Replace(strings.Replace(dot, " ", "", -1), "\t", "", -1)
+	if out != strings.Replace(want, " ", "", -1) {
+		t.Errorf("want\n%vout\n%v", strings.Replace(want, " ", "", -1), out)
 	}
 }
