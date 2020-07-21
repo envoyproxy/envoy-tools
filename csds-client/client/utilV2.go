@@ -1,7 +1,7 @@
 package client
 
 import (
-	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -9,7 +9,7 @@ import (
 )
 
 // parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []string {
+func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 	var configStatus []string
 	for _, perXdsConfig := range xdsConfig {
 		status := perXdsConfig.GetStatus().String()
@@ -31,7 +31,7 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string, visualization bool) error {
+func printOutResponse(response *csdspb_v2.ClientStatusResponse, fileName string, visualization bool) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
