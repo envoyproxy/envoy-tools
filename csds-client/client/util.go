@@ -361,7 +361,6 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 							ldsToRds[name] = rdsSet
 						}
 					}
-					break
 				case "routeConfig":
 					for _, routes := range value.(map[string]interface{}) {
 						for idx, route := range routes.([]interface{}) {
@@ -388,7 +387,6 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 							rdsToCds[name] = cdsSet
 						}
 					}
-					break
 				case "clusterConfig":
 					for _, clusters := range value.(map[string]interface{}) {
 						for idx, cluster := range clusters.([]interface{}) {
@@ -397,7 +395,6 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 							cds[name] = id
 						}
 					}
-					break
 				}
 			}
 		}
@@ -448,13 +445,10 @@ func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
-		break
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-		break
 	case "darwin":
 		err = exec.Command("open", url).Start()
-		break
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
