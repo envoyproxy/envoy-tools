@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
+	"strings"
 	"time"
 )
 
@@ -161,7 +162,7 @@ func (c *Client) Run() error {
 
 	var streamClientStatus interface{}
 	var err error
-	switch c.info.ApiVersion{
+	switch c.info.ApiVersion {
 	case "v2":
 		c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
 		streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
@@ -173,7 +174,21 @@ func (c *Client) Run() error {
 	// run once or run with monitor mode
 	for {
 		if err := c.doRequest(streamClientStatus); err != nil {
-			return err
+			// timeout error
+			// retry to connect
+			if strings.Contains(err.Error(), "RpcSecurityPolicy") {
+				switch c.info.ApiVersion {
+				case "v2":
+					c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
+					streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
+					if err != nil {
+						return err
+					}
+				}
+				continue
+			} else {
+				return err
+			}
 		}
 		if c.info.MonitorInterval != 0 {
 			time.Sleep(c.info.MonitorInterval)
@@ -185,10 +200,10 @@ func (c *Client) Run() error {
 
 // doRequest sends request and print out the parsed response
 func (c *Client) doRequest(streamClientStatus interface{}) error {
-	switch streamClientStatus.(type){
+	switch streamClientStatus.(type) {
 	case csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient:
 		req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nm}
-		streamclientstatusV2 :=streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient)
+		streamclientstatusV2 := streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient)
 		if err := streamclientstatusV2.Send(req); err != nil {
 			return err
 		}
