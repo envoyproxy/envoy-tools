@@ -422,9 +422,16 @@ func generateGraph(data GraphData) (string, error) {
 		return "", err
 	}
 
+	if err := graph.AddAttr("G", "rankdir", "LR"); err != nil {
+		return "", err
+	}
+
+	// different colors for xDS nodes
+	colors := map[string]string{"LDS": "#4285F4", "RDS": "#FBBC04", "CDS": "#34A853"}
+
 	for _, xDS := range data.nodes {
 		for name, node := range xDS {
-			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node}); err != nil {
+			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node, "fontcolor": "white", "fontname": "Roboto", "shape": "box", "style": `\""filled,rounded"\"`, "color": `\"` + colors[node[0:3]] + `\"`, "fillcolor": `\"` + colors[node[0:3]] + `\"`}); err != nil {
 				return "", err
 			}
 		}
@@ -432,7 +439,7 @@ func generateGraph(data GraphData) (string, error) {
 	for _, relations := range data.relations {
 		for src, set := range relations {
 			for _, dst := range set.Values() {
-				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, nil); err != nil {
+				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, map[string]string{"penwidth": "0.3", "arrowsize": "0.3"}); err != nil {
 					return "", err
 				}
 			}
