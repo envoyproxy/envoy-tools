@@ -201,7 +201,7 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string, visualization bool) error {
+func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string, visualization bool, monitor bool) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -278,7 +278,7 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 
 		// call visualize to enable visualization
 		if visualization {
-			if err := visualize(out); err != nil {
+			if err := visualize(out, monitor); err != nil {
 				return err
 			}
 		}
@@ -287,7 +287,7 @@ func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fi
 }
 
 // visualize calls parseXdsRelationship and use the result to visualize
-func visualize(config []byte) error {
+func visualize(config []byte, monitor bool) error {
 	graphData, err := parseXdsRelationship(config)
 	if err != nil {
 		return err
@@ -297,9 +297,11 @@ func visualize(config []byte) error {
 		return err
 	}
 
-	url := "http://dreampuf.github.io/GraphvizOnline/#" + dot
-	if err := openBrowser(url); err != nil {
-		return err
+	if !monitor {
+		url := "http://dreampuf.github.io/GraphvizOnline/#" + dot
+		if err := openBrowser(url); err != nil {
+			return err
+		}
 	}
 
 	// save dot to file

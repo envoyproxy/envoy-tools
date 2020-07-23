@@ -47,6 +47,7 @@ Options that are common are exposed/controlled through command line flags, and o
    * If this flag is not specified, the visualization mode is off by default
    * The client will generate a `.dot` file and save it as `config_graph.dot`, then it will open the browser window automatically to show the graph parsed by dot.
    * Each xDS node shown in the graph is labelled by index (e.g. LDS0, RDS0, RDS1,...) to make the graph clearer. The real name of xDS in config will show when the user hovers the mouse over each node.
+   * If **the visualization mode** and **the monitor mode** are enabled together, the client will only save graph dot data without opening the browser to avoid frequent pop-ups of the browser due to short monitor interval.
 
 ## Output
 ```

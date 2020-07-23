@@ -223,7 +223,7 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 	}
 
 	// post process response
-	if err := printOutResponse(resp, c.info.configFile, c.info.visualization); err != nil {
+	if err := printOutResponse(resp, c.info.configFile, c.info.visualization, c.info.monitorInterval != 0); err != nil {
 		return err
 	}
 
