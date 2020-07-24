@@ -5,17 +5,17 @@ For now, this initial version of this CSDS client only support GCP's [Traffic Di
 <br/>Before you start, you'll need [Go](https://golang.org/) installed.
 
 # Building
-* install dependencies using `go get`.
+* Run `make` to install dependencies and build a binary.
 
 # Running
-* run with `go run main.go <flag>`, e.g. <br/><br/>
+* run with `./bin/main <flag>`, e.g. <br/><br/>
    * auto authentication mode
    ```
-   go run main.go -service_uri <uri> -cloud_platform gcp -authn_mode auto -api_version v2 -request_file <path to csds request yaml file>
+   ./bin/main -service_uri <uri> -cloud_platform gcp -authn_mode auto -api_version v2 -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
    ```
-   go run main.go -service_uri <uri> -cloud_platform gcp -authn_mode jwt -api_version v2 -request_file <path to csds request yaml file> -jwt_file <path to jwt key>
+   ./bin/main -service_uri <uri> -cloud_platform gcp -authn_mode jwt -api_version v2 -request_file <path to csds request yaml file> -jwt_file <path to jwt key>
   ```
 
 # Usage
