@@ -5,17 +5,17 @@ For now, this initial version of this CSDS client only support GCP's [Traffic Di
 <br/>Before you start, you'll need [Go](https://golang.org/) installed.
 
 # Building
-* install dependencies using `go get`.
+* Run `make` to install dependencies and build a binary.
 
 # Running
-* run with `go run main.go <flag>`, e.g. <br/><br/>
+* run with `./bin/main <flag>`, e.g. <br/><br/>
    * auto authentication mode
    ```
-   go run main.go -service_uri <uri> -cloud_platform gcp -authn_mode auto -api_version v2 -request_file <path to csds request yaml file>
+   ./bin/main -service_uri <uri> -cloud_platform gcp -authn_mode auto -api_version v2 -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
    ```
-   go run main.go -service_uri <uri> -cloud_platform gcp -authn_mode jwt -api_version v2 -request_file <path to csds request yaml file> -jwt_file <path to jwt key>
+   ./bin/main -service_uri <uri> -cloud_platform gcp -authn_mode jwt -api_version v2 -request_file <path to csds request yaml file> -jwt_file <path to jwt key>
   ```
 
 # Usage
@@ -47,6 +47,7 @@ Options that are common are exposed/controlled through command line flags, and o
    * If this flag is not specified, the visualization mode is off by default
    * The client will generate a `.dot` file and save it as `config_graph.dot`, then it will open the browser window automatically to show the graph parsed by dot.
    * Each xDS node shown in the graph is labelled by index (e.g. LDS0, RDS0, RDS1,...) to make the graph clearer. The real name of xDS in config will show when the user hovers the mouse over each node.
+   * If **the visualization mode** and **the monitor mode** are enabled together, the client will only save graph dot data without opening the browser to avoid frequent pop-ups of the browser due to short monitor interval.
 
 ## Output
 ```

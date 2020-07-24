@@ -1,7 +1,11 @@
 package client
 
 import (
+<<<<<<< HEAD
 	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+=======
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+>>>>>>> graph-branch
 
 	"bytes"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -112,7 +116,11 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
+<<<<<<< HEAD
 	var response csdspb_v2.ClientStatusResponse
+=======
+	var response csdspb.ClientStatusResponse
+>>>>>>> graph-branch
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
@@ -134,7 +142,11 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
+<<<<<<< HEAD
 	var response csdspb_v2.ClientStatusResponse
+=======
+	var response csdspb.ClientStatusResponse
+>>>>>>> graph-branch
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
