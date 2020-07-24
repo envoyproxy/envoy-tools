@@ -213,7 +213,7 @@ func (c *Client) doRequest(streamClientStatus interface{}) error {
 			return err
 		}
 		// post process response
-		if err := printOutResponse(resp, c.info.ConfigFile, c.info.Visualization, c.info.MonitorInterval != 0); err != nil {
+		if err := printOutResponse_v2(resp, c.info.ConfigFile, c.info.Visualization, c.info.MonitorInterval != 0); err != nil {
 			return err
 		}
 	}

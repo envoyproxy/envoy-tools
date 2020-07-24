@@ -9,7 +9,7 @@ import (
 )
 
 // parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
+func parseConfigStatus_v2(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 	var configStatus []string
 	for _, perXdsConfig := range xdsConfig {
 		status := perXdsConfig.GetStatus().String()
@@ -31,7 +31,7 @@ func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *csdspb_v2.ClientStatusResponse, fileName string, visualization bool, monitor bool) error {
+func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, fileName string, visualization bool, monitor bool) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -63,7 +63,7 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, fileName string,
 			hasXdsConfig = true
 
 			// parse config status
-			configStatus := parseConfigStatus(config.GetXdsConfig())
+			configStatus := parseConfigStatus_v2(config.GetXdsConfig())
 			fmt.Printf("%-50s %-30s ", id, xdsType)
 
 			for i := 0; i < len(configStatus); i++ {
