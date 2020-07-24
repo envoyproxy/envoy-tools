@@ -1,10 +1,10 @@
 package client
 
 import (
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	envoy_service_status_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 
 	"bytes"
@@ -174,7 +174,7 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 }
 
 // parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []string {
+func parseConfigStatus(xdsConfig []*csdspb.PerXdsConfig) []string {
 	var configStatus []string
 	for _, perXdsConfig := range xdsConfig {
 		status := perXdsConfig.GetStatus().String()
@@ -196,7 +196,7 @@ func parseConfigStatus(xdsConfig []*envoy_service_status_v2.PerXdsConfig) []stri
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *envoy_service_status_v2.ClientStatusResponse, fileName string) error {
+func printOutResponse(response *csdspb.ClientStatusResponse, fileName string) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
