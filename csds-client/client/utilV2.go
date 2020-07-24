@@ -31,7 +31,7 @@ func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *csdspb_v2.ClientStatusResponse, fileName string, visualization bool) error {
+func printOutResponse(response *csdspb_v2.ClientStatusResponse, fileName string, visualization bool, monitor bool) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -108,7 +108,7 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, fileName string,
 
 		// call visualize to enable visualization
 		if visualization {
-			if err := visualize(out); err != nil {
+			if err := visualize(out, monitor); err != nil {
 				return err
 			}
 		}

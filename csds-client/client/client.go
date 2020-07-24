@@ -208,21 +208,14 @@ func (c *Client) doRequest(streamClientStatus interface{}) error {
 			return err
 		}
 
-<<<<<<< HEAD
 		resp, err := streamclientstatusV2.Recv()
 		if err != nil {
 			return err
 		}
 		// post process response
-		if err := printOutResponse(resp, c.info.ConfigFile, c.info.Visualization); err != nil {
+		if err := printOutResponse(resp, c.info.ConfigFile, c.info.Visualization, c.info.MonitorInterval != 0); err != nil {
 			return err
 		}
-=======
-	// post process response
-	if err := printOutResponse(resp, c.info.configFile, c.info.visualization, c.info.monitorInterval != 0); err != nil {
-		return err
->>>>>>> graph-branch
 	}
-
 	return nil
 }
