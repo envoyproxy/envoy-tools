@@ -1,17 +1,19 @@
 package client
 
 import (
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
 	"context"
 	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
+	"io"
 	"time"
 )
 
@@ -225,7 +227,7 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 	}
 
 	resp, err := streamClientStatus.Recv()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return err
 	}
 
