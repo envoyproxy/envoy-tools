@@ -107,6 +107,9 @@ func (c *Client) connWithAuth() error {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewServiceAccountFromFile(c.info.jwt, scope)
 			if err != nil {
@@ -119,13 +122,16 @@ func (c *Client) connWithAuth() error {
 			}
 			return nil
 		default:
-			return nil
+			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 		}
 	case "auto":
 		switch c.info.platform {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
 			if err != nil {
