@@ -1,15 +1,13 @@
 package client
 
 import (
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-	"io"
-
 	"context"
 	"crypto/x509"
 	"errors"
 	"flag"
 	"fmt"
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
@@ -210,6 +208,9 @@ func (c *Client) Run() error {
 		if c.info.monitorInterval != 0 {
 			time.Sleep(c.info.monitorInterval)
 		} else {
+			if err := streamClientStatus.CloseSend(); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -223,18 +224,14 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 		return err
 	}
 
-	for {
-		resp, err := streamClientStatus.Recv()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
+	resp, err := streamClientStatus.Recv()
+	if err != nil {
+		return err
+	}
 
-		// post process response
-		if err := printOutResponse(resp, c.info.configFile); err != nil {
-			return err
-		}
+	// post process response
+	if err := printOutResponse(resp, c.info.configFile); err != nil {
+		return err
 	}
 
 	return nil
