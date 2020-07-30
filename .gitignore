@@ -1,0 +1,10 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.dot
+
+# Built binary directory
+csds-client/bin/
