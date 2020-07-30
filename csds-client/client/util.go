@@ -119,7 +119,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 	return nil
 }
 
-// getValueByKeyFromNodeMatcher get value by key from metadata of nodematchers
+// getValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
 func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {

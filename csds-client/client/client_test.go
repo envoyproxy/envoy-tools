@@ -24,11 +24,11 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.nm == nil {
+	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nm[0])
+	get, err := prototext.Marshal(c.nodeMatcher[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
@@ -48,11 +48,11 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.nm == nil {
+	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nm[0])
+	get, err := prototext.Marshal(c.nodeMatcher[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
@@ -73,11 +73,11 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.nm == nil {
+	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
 	want := "node_id:{exact:\"fake_node_id_from_cli\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nm[0])
+	get, err := prototext.Marshal(c.nodeMatcher[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}

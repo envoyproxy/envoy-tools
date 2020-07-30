@@ -29,12 +29,12 @@ type Flag struct {
 }
 
 type Client struct {
-	cc         *grpc.ClientConn
+	clientConn *grpc.ClientConn
 	csdsClient csdspb.ClientStatusDiscoveryServiceClient
 
-	nm   []*envoy_type_matcher.NodeMatcher
-	md   metadata.MD
-	info Flag
+	nodeMatcher []*envoy_type_matcher.NodeMatcher
+	metadata    metadata.MD
+	info        Flag
 }
 
 // ParseFlags parses flags to info
@@ -79,14 +79,14 @@ func (c *Client) parseNodeMatcher() error {
 		return err
 	}
 
-	c.nm = nodematchers
+	c.nodeMatcher = nodematchers
 
 	// check if required fields exist in nodematcher
 	switch c.info.platform {
 	case "gcp":
 		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
 		for _, key := range keys {
-			if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
+			if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
 				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
@@ -113,7 +113,7 @@ func (c *Client) connWithAuth() error {
 				return err
 			}
 
-			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
@@ -138,11 +138,11 @@ func (c *Client) connWithAuth() error {
 			case "trafficdirector.googleapis.com:443":
 				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 			}
-			if projectNum := getValueByKeyFromNodeMatcher(c.nm, key); projectNum != "" {
-				c.md = metadata.Pairs("x-goog-user-project", projectNum)
+			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
+				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
@@ -179,12 +179,12 @@ func (c *Client) Run() error {
 	if err := c.connWithAuth(); err != nil {
 		return err
 	}
-	defer c.cc.Close()
+	defer c.clientConn.Close()
 
-	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
+	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.clientConn)
 	var ctx context.Context
-	if c.md != nil {
-		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
+	if c.metadata != nil {
+		ctx = metadata.NewOutgoingContext(context.Background(), c.metadata)
 	} else {
 		ctx = context.Background()
 	}
@@ -209,7 +209,7 @@ func (c *Client) Run() error {
 // doRequest sends request and print out the parsed response
 func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
-	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
+	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
 	if err := streamClientStatus.Send(req); err != nil {
 		return err
 	}
