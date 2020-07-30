@@ -3,7 +3,7 @@ all: install build
 
 .PHONY: build # Build binary.
 build:
-	go build -o bin/main main.go
+	go build -o bin/csds main.go
 
 .PHONY: help # Print help message.
 help:
