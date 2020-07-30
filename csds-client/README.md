@@ -11,11 +11,22 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
 * run with `./bin/main <flag>`, e.g. <br/><br/>
    * auto authentication mode
    ```
-   ./bin/main -service_uri <uri> -cloud_platform gcp -authn_mode auto -api_version v2 -request_file <path to csds request yaml file>
+   ./bin/main \
+     -service_uri <uri> \
+     -cloud_platform gcp \
+     -authn_mode auto \
+     -api_version v2 \
+     -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
    ```
-   ./bin/main -service_uri <uri> -cloud_platform gcp -authn_mode jwt -api_version v2 -request_file <path to csds request yaml file> -jwt_file <path to jwt key>
+   ./bin/main \
+     -service_uri <uri> \
+     -cloud_platform gcp \
+     -authn_mode jwt \
+     -api_version v2 \
+     -request_file <path to csds request yaml file> \
+     -jwt_file <path to jwt key>
   ```
 
 # Usage
@@ -38,7 +49,7 @@ Common options are exposed/controlled via command line flags, while control plan
 * ***-request_yaml***: yaml string that defines the csds request
   * If ***-request_file*** is also set, the values in this yaml string will override and merge with the request loaded from ***-request_file***. 
   * Because yaml is a superset of json, a json string may also be passed to ***-request_yaml***.
-* ***-file_to_save_config***: file name to save configs returned by csds response
+* ***-output_file***: file name to save configs returned by csds response
    * If this flag is not specified, the configuration will be output to stdout by default.
 * ***-monitor_interval***: the interval of sending requests in monitor mode (e.g. 500ms, 2s, 1m, ...)
    * If this flag is not specified, the client will run only once.
@@ -53,5 +64,5 @@ Client ID                      xDS stream type                Config Status
 (Detailed Config:
  <detailed config>)
 OR
-(Config has been saved to <file_to_save_config>)
+(Config has been saved to <output_file>)
 ```

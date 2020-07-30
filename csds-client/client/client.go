@@ -3,6 +3,7 @@ package client
 import (
 	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"io"
 
 	"context"
 	"crypto/x509"
@@ -46,7 +47,7 @@ func ParseFlags() Flag {
 	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
-	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
+	configFilePtr := flag.String("output_file", "", "file name to save configs returned by csds response")
 	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending requests in monitor mode (e.g. 500ms, 2s, 1m ...)")
 
 	flag.Parse()
@@ -90,6 +91,8 @@ func (c *Client) parseNodeMatcher() error {
 				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
+	default:
+		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 	}
 
 	return nil
@@ -220,14 +223,18 @@ func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryServic
 		return err
 	}
 
-	resp, err := streamClientStatus.Recv()
-	if err != nil {
-		return err
-	}
+	for {
+		resp, err := streamClientStatus.Recv()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
 
-	// post process response
-	if err := printOutResponse(resp, c.info.configFile); err != nil {
-		return err
+		// post process response
+		if err := printOutResponse(resp, c.info.configFile); err != nil {
+			return err
+		}
 	}
 
 	return nil

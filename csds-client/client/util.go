@@ -95,8 +95,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 		}
 
 		// parse each json object to proto
-		i := 0
-		for _, n := range data["node_matchers"].([]interface{}) {
+		for i, n := range data["node_matchers"].([]interface{}) {
 			x := &envoy_type_matcher.NodeMatcher{}
 
 			jsonString, err := json.Marshal(n)
@@ -113,7 +112,6 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 			} else {
 				*nms = append(*nms, x)
 			}
-			i++
 		}
 	}
 	return nil
