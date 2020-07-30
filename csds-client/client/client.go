@@ -37,7 +37,7 @@ type Client struct {
 	info Flag
 }
 
-// ParseFLags parses flags to info
+// ParseFlags parses flags to info
 func ParseFlags() Flag {
 	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
 	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
@@ -47,7 +47,7 @@ func ParseFlags() Flag {
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
 	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
-	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending requests in monitor mode (e.g. 500ms, 2s, 1m ...)")
 
 	flag.Parse()
 
