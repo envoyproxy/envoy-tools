@@ -1,0 +1,28 @@
+{
+  "config": [
+    {
+      "node": {
+        "id": "test_node_1",
+        "metadata": {
+          "XDS_STREAM_TYPE": "test_stream_type1"
+        }
+      }
+    },
+    {
+      "node": {
+        "id": "test_node_2",
+        "metadata": {
+          "XDS_STREAM_TYPE": "test_stream_type2"
+        }
+      }
+    },
+    {
+      "node": {
+        "id": "test_node_3",
+        "metadata": {
+          "XDS_STREAM_TYPE": "test_stream_type3"
+        }
+      }
+    }
+  ]
+}
