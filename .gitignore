@@ -1,10 +1,5 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# Graph data for csds-client visualization
 *.dot
 
-# Built binary directory
+# Built binary directory for csds-client
 csds-client/bin/
