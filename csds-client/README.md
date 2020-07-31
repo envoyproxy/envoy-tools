@@ -10,7 +10,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
 # Running
 * run with `./bin/csds <flag>`, e.g. <br/><br/>
    * auto authentication mode
-   ```
+   ```bash
    ./bin/csds \
      -service_uri <uri> \
      -cloud_platform gcp \
@@ -19,7 +19,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
      -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
-   ```
+   ```bash
    ./bin/csds \
      -service_uri <uri> \
      -cloud_platform gcp \
