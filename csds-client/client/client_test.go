@@ -18,6 +18,7 @@ import (
 func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := Client{
 		info: Flag{
+			platform:    "gcp",
 			requestFile: "./test_request.yaml",
 		},
 	}
@@ -38,6 +39,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 func TestParseNodeMatcherWithString(t *testing.T) {
 	c := Client{
 		info: Flag{
+			platform:    "gcp",
 			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
@@ -59,6 +61,7 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	c := Client{
 		info: Flag{
+			platform:    "gcp",
 			requestFile: "./test_request.yaml",
 			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
@@ -173,7 +176,7 @@ func TestVisualization(t *testing.T) {
 	if err != nil {
 		t.Errorf("Generate graph failuer:%v", err)
 	}
-	want := "digraph G {\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\";\n \\\"test_lds_0\\\"->\\\"test_rds_1\\\";\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\";\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\";\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\";\n\\\"test_cds_0\\\" [ label=CDS0 ];\n\\\"test_cds_1\\\" [ label=CDS1 ];\n\\\"test_lds_0\\\" [ label=LDS0 ];\n\\\"test_rds_0\\\" [ label=RDS0 ];\n\\\"test_rds_1\\\" [ label=RDS1 ];\n\n}\n"
+	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
 	out := strings.Replace(strings.Replace(dot, " ", "", -1), "\t", "", -1)
 	if out != strings.Replace(want, " ", "", -1) {
 		t.Errorf("want\n%vout\n%v", strings.Replace(want, " ", "", -1), out)
