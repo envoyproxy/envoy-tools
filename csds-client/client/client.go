@@ -49,7 +49,7 @@ func ParseFlags() Flag {
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
 	configFilePtr := flag.String("output_file", "", "file name to save configs returned by csds response")
-	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending requests in monitor mode (e.g. 500ms, 2s, 1m ...)")
 	visualizationPtr := flag.Bool("visualization", false, "option to visualize the relationship between xDS")
 
 	flag.Parse()
@@ -116,7 +116,6 @@ func (c *Client) connWithAuth() error {
 			if err != nil {
 				return err
 			}
-
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewServiceAccountFromFile(c.info.jwt, scope)
 			if err != nil {
@@ -139,7 +138,6 @@ func (c *Client) connWithAuth() error {
 			if err != nil {
 				return err
 			}
-
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
 			if err != nil {
@@ -152,7 +150,6 @@ func (c *Client) connWithAuth() error {
 			case "trafficdirector.googleapis.com:443":
 				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 			}
-
 			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
