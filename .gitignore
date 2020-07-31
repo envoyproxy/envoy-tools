@@ -1,0 +1,5 @@
+# Graph data for csds-client visualization
+*.dot
+
+# Built binary directory for csds-client
+csds-client/bin/

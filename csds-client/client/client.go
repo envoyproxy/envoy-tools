@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
+	"io"
 	"time"
 )
 
@@ -30,15 +31,15 @@ type Flag struct {
 }
 
 type Client struct {
-	cc         *grpc.ClientConn
+	clientConn *grpc.ClientConn
 	csdsClient csdspb.ClientStatusDiscoveryServiceClient
 
-	nm   []*envoy_type_matcher.NodeMatcher
-	md   metadata.MD
-	info Flag
+	nodeMatcher []*envoy_type_matcher.NodeMatcher
+	metadata    metadata.MD
+	info        Flag
 }
 
-// ParseFLags parses flags to info
+// ParseFlags parses flags to info
 func ParseFlags() Flag {
 	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
 	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
@@ -47,7 +48,7 @@ func ParseFlags() Flag {
 	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
 	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
-	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
+	configFilePtr := flag.String("output_file", "", "file name to save configs returned by csds response")
 	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 	visualizationPtr := flag.Bool("visualization", false, "option to visualize the relationship between xDS")
 
@@ -82,17 +83,19 @@ func (c *Client) parseNodeMatcher() error {
 		return err
 	}
 
-	c.nm = nodematchers
+	c.nodeMatcher = nodematchers
 
 	// check if required fields exist in nodematcher
 	switch c.info.platform {
 	case "gcp":
 		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
 		for _, key := range keys {
-			if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
+			if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
 				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
+	default:
+		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 	}
 
 	return nil
@@ -110,25 +113,33 @@ func (c *Client) connWithAuth() error {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
+
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewServiceAccountFromFile(c.info.jwt, scope)
 			if err != nil {
 				return err
 			}
 
-			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
 			return nil
 		default:
-			return nil
+			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.platform)
 		}
 	case "auto":
 		switch c.info.platform {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
+
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
 			if err != nil {
@@ -141,11 +152,12 @@ func (c *Client) connWithAuth() error {
 			case "trafficdirector.googleapis.com:443":
 				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 			}
-			if projectNum := getValueByKeyFromNodeMatcher(c.nm, key); projectNum != "" {
-				c.md = metadata.Pairs("x-goog-user-project", projectNum)
+
+			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
+				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.cc, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.info.uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
@@ -182,12 +194,12 @@ func (c *Client) Run() error {
 	if err := c.connWithAuth(); err != nil {
 		return err
 	}
-	defer c.cc.Close()
+	defer c.clientConn.Close()
 
-	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.cc)
+	c.csdsClient = csdspb.NewClientStatusDiscoveryServiceClient(c.clientConn)
 	var ctx context.Context
-	if c.md != nil {
-		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
+	if c.metadata != nil {
+		ctx = metadata.NewOutgoingContext(context.Background(), c.metadata)
 	} else {
 		ctx = context.Background()
 	}
@@ -204,6 +216,9 @@ func (c *Client) Run() error {
 		if c.info.monitorInterval != 0 {
 			time.Sleep(c.info.monitorInterval)
 		} else {
+			if err := streamClientStatus.CloseSend(); err != nil {
+				return err
+			}
 			return nil
 		}
 	}
@@ -212,13 +227,13 @@ func (c *Client) Run() error {
 // doRequest sends request and print out the parsed response
 func (c *Client) doRequest(streamClientStatus csdspb.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
-	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nm}
+	req := &csdspb.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
 	if err := streamClientStatus.Send(req); err != nil {
 		return err
 	}
 
 	resp, err := streamClientStatus.Recv()
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return err
 	}
 
