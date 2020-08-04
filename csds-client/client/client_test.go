@@ -1,23 +1,26 @@
 package client
 
 import (
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-
 	"bytes"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/encoding/prototext"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
+
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// test parsing -request_file to nodematcher
+// TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
 func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := Client{
 		info: Flag{
+			platform:    "gcp",
 			requestFile: "./test_request.yaml",
 		},
 	}
@@ -27,20 +30,22 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nodeMatcher[0])
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id\"},\"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}],\"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}},{\"path\":[{\"key\":\"TRAFFICDIRECTOR_NETWORK_NAME\"}],\"value\":{\"stringMatch\":{\"exact\":\"fake_network_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if string(get) != want {
+
+	if !shouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// test parsing -request_yaml to nodematcher
+// TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.
 func TestParseNodeMatcherWithString(t *testing.T) {
 	c := Client{
 		info: Flag{
+			platform:    "gcp",
 			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
@@ -51,21 +56,21 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nodeMatcher[0])
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id\"}, \"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}}, {\"path\":[{\"key\":\"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_network_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	getStr := string(get)
-	if getStr != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", getStr, want)
+	if !shouldEqualJSON(t, string(get), want) {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// test parsing -request_file and -request_yaml to nodematcher
+// TestParseNodeMatcherWithFileAndString tests parsing -request_file and -request_yaml to nodematcher.
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	c := Client{
 		info: Flag{
+			platform:    "gcp",
 			requestFile: "./test_request.yaml",
 			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
@@ -76,18 +81,18 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id_from_cli\"} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"} value:{string_match:{exact:\"fake_project_number\"}}} node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"} value:{string_match:{exact:\"fake_network_name\"}}}"
-	get, err := prototext.Marshal(c.nodeMatcher[0])
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id_from_cli\"}, \"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}}, {\"path\":[{\"key\":\"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_network_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if string(get) != want {
+	if !shouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// CaptureOutput captures the stdout for testing
-func CaptureOutput(f func()) string {
+// captureOutput captures the stdout for testing.
+func captureOutput(f func()) string {
 	reader, writer, err := os.Pipe()
 	if err != nil {
 		panic(err)
@@ -115,7 +120,7 @@ func CaptureOutput(f func()) string {
 	return <-out
 }
 
-// test post processing response without node_id
+// TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
 	filename, _ := filepath.Abs("./response_without_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
@@ -126,7 +131,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := CaptureOutput(func() {
+	out := captureOutput(func() {
 		if err := printOutResponse(&response, ""); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -137,7 +142,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	}
 }
 
-// test post processing response with node_id
+// TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
@@ -148,7 +153,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := CaptureOutput(func() {
+	out := captureOutput(func() {
 		if err := printOutResponse(&response, "test_config.json"); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -163,7 +168,40 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Write config to file failure: %v", err)
 	}
-	if string(outputjson) != string(responsejson) {
+	ok, err := equalJSONBytes(outputjson, responsejson)
+	if err != nil {
+		t.Errorf("failed to parse json")
+	}
+	if !ok {
 		t.Errorf("Output formatted error")
 	}
+}
+
+func shouldEqualJSON(t *testing.T, s1, s2 string) bool {
+	t.Helper()
+
+	verdict, err := equalJSONBytes([]byte(s1), []byte(s1))
+	if err != nil {
+		t.Errorf("failed to check since: %w", err)
+		return false
+	}
+
+	return verdict
+}
+
+func equalJSONBytes(s1, s2 []byte) (bool, error) {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal(s1, &o1)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal s1: %w", err)
+	}
+	err = json.Unmarshal(s2, &o2)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal s2: %w", err)
+	}
+
+	return reflect.DeepEqual(o1, o2), nil
 }

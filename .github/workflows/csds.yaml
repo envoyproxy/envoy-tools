@@ -1,0 +1,19 @@
+name: Build and test
+on:
+  - push
+  - pull_request
+
+jobs:
+  csds_client:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: make -C csds-client
+      - name: Test
+        run: make -C csds-client test
