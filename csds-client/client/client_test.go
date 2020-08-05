@@ -191,7 +191,7 @@ func TestVisualization(t *testing.T) {
 	}
 	dot, err := generateGraph(graphData)
 	if err != nil {
-		t.Errorf("Generate graph failuer:%v", err)
+		t.Errorf("Generate graph failure:%v", err)
 	}
 	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
 	out := strings.Replace(strings.Replace(dot, " ", "", -1), "\t", "", -1)
