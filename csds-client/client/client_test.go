@@ -178,7 +178,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	}
 }
 
-// test parsing xds relationship from config and generating .dot
+// TestVisualization tests parsing xds relationship from config and generating .dot
 func TestVisualization(t *testing.T) {
 	filename, _ := filepath.Abs("./response_for_visualization.json")
 	responsejson, err := ioutil.ReadFile(filename)
