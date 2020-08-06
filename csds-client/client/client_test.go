@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"sync"
 	"testing"
 
@@ -123,6 +122,11 @@ func captureOutput(f func()) string {
 
 // TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
+	c := Client{
+		info: Flag{
+			platform: "gcp",
+		},
+	}
 	filename, _ := filepath.Abs("./response_without_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -133,7 +137,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := captureOutput(func() {
-		if err := printOutResponse(&response, "", false, false); err != nil {
+		if err := printOutResponse(&response, c.info); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -145,6 +149,12 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 
 // TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
+	c := Client{
+		info: Flag{
+			platform:   "gcp",
+			configFile: "test_config.json",
+		},
+	}
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -155,7 +165,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := captureOutput(func() {
-		if err := printOutResponse(&response, "test_config.json", false, false); err != nil {
+		if err := printOutResponse(&response, c.info); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -185,18 +195,12 @@ func TestVisualization(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	graphData, err := parseXdsRelationship(responsejson)
-	if err != nil {
-		t.Errorf("Parse xDS relationship failure: %v", err)
-	}
-	dot, err := generateGraph(graphData)
-	if err != nil {
-		t.Errorf("Generate graph failure:%v", err)
+	if err := visualize(responsejson, false); err != nil {
+		t.Errorf("Visualization Failure: %v", err)
 	}
 	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
-	out := strings.Replace(strings.Replace(dot, " ", "", -1), "\t", "", -1)
-	if out != strings.Replace(want, " ", "", -1) {
-		t.Errorf("want\n%vout\n%v", strings.Replace(want, " ", "", -1), out)
+	if err := openBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
+		t.Errorf("Open want graph failure: %v", err)
 	}
 }
 

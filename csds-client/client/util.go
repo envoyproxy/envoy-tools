@@ -199,7 +199,7 @@ func parseConfigStatus(xdsConfig []*csdspb.PerXdsConfig) []string {
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *csdspb.ClientStatusResponse, fileName string, visualization bool, monitor bool) error {
+func printOutResponse(response *csdspb.ClientStatusResponse, info Flag) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -256,13 +256,13 @@ func printOutResponse(response *csdspb.ClientStatusResponse, fileName string, vi
 			return err
 		}
 
-		if fileName == "" {
+		if info.configFile == "" {
 			// output the configuration to stdout by default
 			fmt.Println("Detailed Config:")
 			fmt.Println(string(out))
 		} else {
 			// write the configuration to the file
-			f, err := os.Create(fileName)
+			f, err := os.Create(info.configFile)
 			if err != nil {
 				return err
 			}
@@ -271,12 +271,12 @@ func printOutResponse(response *csdspb.ClientStatusResponse, fileName string, vi
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Config has been saved to %v\n", fileName)
+			fmt.Printf("Config has been saved to %v\n", info.configFile)
 		}
 
 		// call visualize to enable visualization
-		if visualization {
-			if err := visualize(out, monitor); err != nil {
+		if info.visualization {
+			if err := visualize(out, info.monitorInterval != 0); err != nil {
 				return err
 			}
 		}
