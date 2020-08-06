@@ -8,10 +8,10 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
 * Run `make` to install dependencies and build a binary.
 
 # Running
-* run with `./bin/csds <flag>`, e.g. <br/><br/>
+* run with `csds-client <flag>`, e.g. <br/><br/>
    * auto authentication mode
    ```bash
-   ./bin/csds \
+   csds-client \
      -service_uri <uri> \
      -cloud_platform gcp \
      -authn_mode auto \
@@ -20,7 +20,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
   ```
    * jwt authentication mode
    ```bash
-   ./bin/csds \
+   csds-client \
      -service_uri <uri> \
      -cloud_platform gcp \
      -authn_mode jwt \

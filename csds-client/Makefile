@@ -1,9 +1,9 @@
 .PHONY: all # Install dependencies, build binary.
-all: install build
+all: init test install
 
 .PHONY: build # Build binary.
 build:
-	go build -o bin/csds main.go
+	go build
 
 .PHONY: test # Run tests.
 test:
@@ -13,6 +13,10 @@ test:
 help:
 	@grep -E '^\.PHONY: [a-zA-Z_-]+ .*?# .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = "(: |#)"}; {printf "%-30s %s\n", $$2, $$3}'
 
-.PHONY: install # Install missing dependencies.
-install:
+.PHONY: init # Install missing dependencies.
+init:
 	go get
+
+.PHONY: install # Install built binary.
+install:
+	go install
