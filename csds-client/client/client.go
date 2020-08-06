@@ -50,7 +50,7 @@ func ParseFlags() Flag {
 	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
 	configFilePtr := flag.String("output_file", "", "file name to save configs returned by csds response")
 	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending requests in monitor mode (e.g. 500ms, 2s, 1m ...)")
-	visualizationPtr := flag.Bool("visualization", false, "option to visualize the relationship between xDS")
+	visualizationPtr := flag.Bool("visualization", false, "option to visualize the relationship between xDS resources received from the CSDS response")
 
 	flag.Parse()
 
