@@ -1,21 +1,9 @@
 package client
 
 import (
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
-	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/awalterschulze/gographviz"
-	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/ghodss/yaml"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"io"
 	"io/ioutil"
 	"os"
@@ -23,6 +11,18 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+
+	"github.com/awalterschulze/gographviz"
+	"github.com/emirpasic/gods/sets/treeset"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
+	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"github.com/ghodss/yaml"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 // isJson checks if str is a valid json format string
@@ -99,8 +99,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 		}
 
 		// parse each json object to proto
-		i := 0
-		for _, n := range data["node_matchers"].([]interface{}) {
+		for i, n := range data["node_matchers"].([]interface{}) {
 			x := &envoy_type_matcher.NodeMatcher{}
 
 			jsonString, err := json.Marshal(n)
@@ -117,13 +116,12 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 			} else {
 				*nms = append(*nms, x)
 			}
-			i++
 		}
 	}
 	return nil
 }
 
-// getValueByKeyFromNodeMatcher get value by key from metadata of nodematchers
+// getValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
 func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {

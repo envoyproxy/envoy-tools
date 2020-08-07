@@ -1,11 +1,11 @@
 package client
 
 import (
-	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
 	"os"
+
+	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 )
 
 // parseConfigStatus parses each xds config status to string
@@ -31,7 +31,7 @@ func parseConfigStatus_v2(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 }
 
 // printOutResponse processes response and print
-func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, fileName string, visualization bool, monitor bool) error {
+func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, info ClientOptions) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -88,13 +88,13 @@ func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, fileName stri
 			return err
 		}
 
-		if fileName == "" {
+		if info.ConfigFile == "" {
 			// output the configuration to stdout by default
 			fmt.Println("Detailed Config:")
 			fmt.Println(string(out))
 		} else {
 			// write the configuration to the file
-			f, err := os.Create(fileName)
+			f, err := os.Create(info.ConfigFile)
 			if err != nil {
 				return err
 			}
@@ -103,12 +103,12 @@ func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, fileName stri
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Config has been saved to %v\n", fileName)
+			fmt.Printf("Config has been saved to %v\n", info.ConfigFile)
 		}
 
 		// call visualize to enable visualization
-		if visualization {
-			if err := visualize(out, monitor); err != nil {
+		if info.Visualization {
+			if err := visualize(out, info.MonitorInterval != 0); err != nil {
 				return err
 			}
 		}

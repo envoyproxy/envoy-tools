@@ -1,19 +1,20 @@
 package client
 
 import (
-	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-
 	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
+	"strings"
+	"time"
+
+	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
-	"strings"
-	"time"
 )
 
 type ClientOptions struct {
@@ -30,12 +31,12 @@ type ClientOptions struct {
 }
 
 type Client struct {
-	cc         *grpc.ClientConn
+	clientConn *grpc.ClientConn
 	csdsClient interface{}
 
-	nm   []*envoy_type_matcher.NodeMatcher
-	md   metadata.MD
-	info ClientOptions
+	nodeMatcher []*envoy_type_matcher.NodeMatcher
+	metadata    metadata.MD
+	info        ClientOptions
 }
 
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
@@ -51,17 +52,19 @@ func (c *Client) parseNodeMatcher() error {
 		return err
 	}
 
-	c.nm = nodematchers
+	c.nodeMatcher = nodematchers
 
 	// check if required fields exist in nodematcher
 	switch c.info.Platform {
 	case "gcp":
 		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
 		for _, key := range keys {
-			if value := getValueByKeyFromNodeMatcher(c.nm, key); value == "" {
+			if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
 				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
+	default:
+		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.Platform)
 	}
 
 	return nil
@@ -79,25 +82,31 @@ func (c *Client) connWithAuth() error {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewServiceAccountFromFile(c.info.Jwt, scope)
 			if err != nil {
 				return err
 			}
 
-			c.cc, err = grpc.Dial(c.info.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.info.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
 			return nil
 		default:
-			return nil
+			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.Platform)
 		}
 	case "auto":
 		switch c.info.Platform {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
+			if err != nil {
+				return err
+			}
 			creds := credentials.NewClientTLSFromCert(pool, "")
 			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
 			if err != nil {
@@ -110,11 +119,11 @@ func (c *Client) connWithAuth() error {
 			case "trafficdirector.googleapis.com:443":
 				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 			}
-			if projectNum := getValueByKeyFromNodeMatcher(c.nm, key); projectNum != "" {
-				c.md = metadata.Pairs("x-goog-user-project", projectNum)
+			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
+				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.cc, err = grpc.Dial(c.info.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.info.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
@@ -151,11 +160,11 @@ func (c *Client) Run() error {
 	if err := c.connWithAuth(); err != nil {
 		return err
 	}
-	defer c.cc.Close()
+	defer c.clientConn.Close()
 
 	var ctx context.Context
-	if c.md != nil {
-		ctx = metadata.NewOutgoingContext(context.Background(), c.md)
+	if c.metadata != nil {
+		ctx = metadata.NewOutgoingContext(context.Background(), c.metadata)
 	} else {
 		ctx = context.Background()
 	}
@@ -164,7 +173,7 @@ func (c *Client) Run() error {
 	var err error
 	switch c.info.ApiVersion {
 	case "v2":
-		c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
+		c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.clientConn)
 		streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
 		if err != nil {
 			return err
@@ -179,7 +188,7 @@ func (c *Client) Run() error {
 			if strings.Contains(err.Error(), "RpcSecurityPolicy") {
 				switch c.info.ApiVersion {
 				case "v2":
-					c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.cc)
+					c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.clientConn)
 					streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
 					if err != nil {
 						return err
@@ -187,6 +196,13 @@ func (c *Client) Run() error {
 				}
 				continue
 			} else {
+				var err error
+				switch c.info.ApiVersion {
+				case "v2":
+					if err = streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient).CloseSend(); err != nil {
+						return err
+					}
+				}
 				return err
 			}
 		}
@@ -202,18 +218,18 @@ func (c *Client) Run() error {
 func (c *Client) doRequest(streamClientStatus interface{}) error {
 	switch streamClientStatus.(type) {
 	case csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient:
-		req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nm}
+		req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
 		streamclientstatusV2 := streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient)
 		if err := streamclientstatusV2.Send(req); err != nil {
 			return err
 		}
 
 		resp, err := streamclientstatusV2.Recv()
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return err
 		}
 		// post process response
-		if err := printOutResponse_v2(resp, c.info.ConfigFile, c.info.Visualization, c.info.MonitorInterval != 0); err != nil {
+		if err := printOutResponse_v2(resp, c.info); err != nil {
 			return err
 		}
 	}

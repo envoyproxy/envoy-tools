@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-// ParseFLags parses flags to ClientOptions
+// ParseFlags parses flags to ClientOptions
 func ParseFlags() client.ClientOptions {
 	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
 	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")

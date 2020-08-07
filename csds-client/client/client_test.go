@@ -1,43 +1,53 @@
 package client
 
 import (
-	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-
 	"bytes"
-	"google.golang.org/protobuf/encoding/protojson"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
+	"reflect"
 	"sync"
 	"testing"
+
+	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// test parsing -request_file to nodematcher
+// TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
 func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := Client{
 		info: ClientOptions{
+			Platform:    "gcp",
+			ApiVersion:  "v2",
 			RequestFile: "./test_request.yaml",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.nm == nil {
+	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id\"}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}value:{string_match:{exact:\"fake_project_number\"}}}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"}value:{string_match:{exact:\"fake_network_name\"}}}"
-	get := strings.Replace(c.nm[0].String(), " ", "", -1)
-	if get != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", get, want)
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id\"},\"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}],\"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}},{\"path\":[{\"key\":\"TRAFFICDIRECTOR_NETWORK_NAME\"}],\"value\":{\"stringMatch\":{\"exact\":\"fake_network_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+
+	if !shouldEqualJSON(t, string(get), want) {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// test parsing -request_yaml to nodematcher
+// TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.
 func TestParseNodeMatcherWithString(t *testing.T) {
 	c := Client{
 		info: ClientOptions{
+			Platform:    "gcp",
+			ApiVersion:  "v2",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
@@ -45,39 +55,47 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.nm == nil {
+	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id\"}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}value:{string_match:{exact:\"fake_project_number\"}}}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"}value:{string_match:{exact:\"fake_network_name\"}}}"
-	get := strings.Replace(c.nm[0].String(), " ", "", -1)
-	if get != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", get, want)
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id\"}, \"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}}, {\"path\":[{\"key\":\"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_network_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	if !shouldEqualJSON(t, string(get), want) {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// test parsing -request_file and -request_yaml to nodematcher
+// TestParseNodeMatcherWithFileAndString tests parsing -request_file and -request_yaml to nodematcher.
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	c := Client{
 		info: ClientOptions{
+			Platform:    "gcp",
 			RequestFile: "./test_request.yaml",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
+			ApiVersion:  "v2",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if c.nm == nil {
+	if c.nodeMatcher == nil {
 		t.Errorf("Parse NodeMatcher Failure!")
 	}
-	want := "node_id:{exact:\"fake_node_id_from_cli\"}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}value:{string_match:{exact:\"fake_project_number\"}}}node_metadatas:{path:{key:\"TRAFFICDIRECTOR_NETWORK_NAME\"}value:{string_match:{exact:\"fake_network_name\"}}}"
-	get := strings.Replace(c.nm[0].String(), " ", "", -1)
-	if get != want {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", get, want)
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id_from_cli\"}, \"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}}, {\"path\":[{\"key\":\"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\":{\"stringMatch\":{\"exact\":\"fake_network_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	if !shouldEqualJSON(t, string(get), want) {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
-// CaptureOutput captures the stdout for testing
-func CaptureOutput(f func()) string {
+// captureOutput captures the stdout for testing.
+func captureOutput(f func()) string {
 	reader, writer, err := os.Pipe()
 	if err != nil {
 		panic(err)
@@ -105,20 +123,25 @@ func CaptureOutput(f func()) string {
 	return <-out
 }
 
-// test post processing response without node_id
+// TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
+	c := Client{
+		info: ClientOptions{
+			Platform:   "gcp",
+			ApiVersion: "v2",
+		},
+	}
 	filename, _ := filepath.Abs("./response_without_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-
 	var response csdspb_v2.ClientStatusResponse
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := CaptureOutput(func() {
-		if err := printOutResponse(&response, "", false, false); err != nil {
+	out := captureOutput(func() {
+		if err := printOutResponse_v2(&response, c.info); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -128,20 +151,26 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	}
 }
 
-// test post processing response with node_id
+// TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
+	c := Client{
+		info: ClientOptions{
+			Platform:   "gcp",
+			ConfigFile: "test_config.json",
+			ApiVersion: "v2",
+		},
+	}
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
 	responsejson, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-
 	var response csdspb_v2.ClientStatusResponse
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := CaptureOutput(func() {
-		if err := printOutResponse(&response, "test_config.json", false, false); err != nil {
+	out := captureOutput(func() {
+		if err := printOutResponse_v2(&response, c.info); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -155,29 +184,56 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Write config to file failure: %v", err)
 	}
-	if strings.Replace(string(outputjson), " ", "", -1) != strings.Replace(string(responsejson), " ", "", -1) {
+	ok, err := equalJSONBytes(outputjson, responsejson)
+	if err != nil {
+		t.Errorf("failed to parse json")
+	}
+	if !ok {
 		t.Errorf("Output formatted error")
 	}
 }
 
-// test parsing xds relationship from config and generating .dot
+// TestVisualization tests parsing xds relationship from config and generating .dot
 func TestVisualization(t *testing.T) {
 	filename, _ := filepath.Abs("./response_for_visualization.json")
 	responsejson, err := ioutil.ReadFile(filename)
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	graphData, err := parseXdsRelationship(responsejson)
+	if err := visualize(responsejson, false); err != nil {
+		t.Errorf("Visualization Failure: %v", err)
+	}
+	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
+	if err := openBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
+		t.Errorf("Open want graph failure: %v", err)
+	}
+}
+
+func shouldEqualJSON(t *testing.T, s1, s2 string) bool {
+	t.Helper()
+
+	verdict, err := equalJSONBytes([]byte(s1), []byte(s1))
 	if err != nil {
-		t.Errorf("Parse xDS relationship failure: %v", err)
+		t.Errorf("failed to check since: %w", err)
+		return false
 	}
-	dot, err := generateGraph(graphData)
+
+	return verdict
+}
+
+func equalJSONBytes(s1, s2 []byte) (bool, error) {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal(s1, &o1)
 	if err != nil {
-		t.Errorf("Generate graph failuer:%v", err)
+		return false, fmt.Errorf("failed to marshal s1: %w", err)
 	}
-	want := "digraph G {\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\";\n \\\"test_lds_0\\\"->\\\"test_rds_1\\\";\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\";\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\";\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\";\n\\\"test_cds_0\\\" [ label=CDS0 ];\n\\\"test_cds_1\\\" [ label=CDS1 ];\n\\\"test_lds_0\\\" [ label=LDS0 ];\n\\\"test_rds_0\\\" [ label=RDS0 ];\n\\\"test_rds_1\\\" [ label=RDS1 ];\n\n}\n"
-	out := strings.Replace(strings.Replace(dot, " ", "", -1), "\t", "", -1)
-	if out != strings.Replace(want, " ", "", -1) {
-		t.Errorf("want\n%vout\n%v", strings.Replace(want, " ", "", -1), out)
+	err = json.Unmarshal(s2, &o2)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal s2: %w", err)
 	}
+
+	return reflect.DeepEqual(o1, o2), nil
 }
