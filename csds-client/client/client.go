@@ -209,7 +209,7 @@ func (c *Client) Run() error {
 					return err
 				}
 			}
-			return err
+			return nil
 		}
 	}
 }

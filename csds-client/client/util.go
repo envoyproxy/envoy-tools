@@ -350,5 +350,8 @@ func openBrowser(url string) error {
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
