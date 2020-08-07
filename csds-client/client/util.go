@@ -1,24 +1,29 @@
 package client
 
 import (
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
-	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
+
+	"github.com/awalterschulze/gographviz"
+	"github.com/emirpasic/gods/sets/treeset"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
+	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
-	"io"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 )
 
 // isJson checks if str is a valid json format string
@@ -194,7 +199,7 @@ func parseConfigStatus(xdsConfig []*csdspb.PerXdsConfig) []string {
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *csdspb.ClientStatusResponse, fileName string) error {
+func printOutResponse(response *csdspb.ClientStatusResponse, info Flag) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -216,7 +221,6 @@ func printOutResponse(response *csdspb.ClientStatusResponse, fileName string) er
 			if metadata["XDS_STREAM_TYPE"] != nil {
 				xdsType = metadata["XDS_STREAM_TYPE"].(string)
 			}
-
 		}
 
 		if config.GetXdsConfig() == nil {
@@ -252,13 +256,13 @@ func printOutResponse(response *csdspb.ClientStatusResponse, fileName string) er
 			return err
 		}
 
-		if fileName == "" {
+		if info.configFile == "" {
 			// output the configuration to stdout by default
 			fmt.Println("Detailed Config:")
 			fmt.Println(string(out))
 		} else {
 			// write the configuration to the file
-			f, err := os.Create(fileName)
+			f, err := os.Create(info.configFile)
 			if err != nil {
 				return err
 			}
@@ -267,8 +271,202 @@ func printOutResponse(response *csdspb.ClientStatusResponse, fileName string) er
 			if err != nil {
 				return err
 			}
-			fmt.Printf("Config has been saved to %v\n", fileName)
+			fmt.Printf("Config has been saved to %v\n", info.configFile)
 		}
+
+		// call visualize to enable visualization
+		if info.visualization {
+			if err := visualize(out, info.monitorInterval != 0); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// visualize calls parseXdsRelationship and use the result to visualize
+func visualize(config []byte, monitor bool) error {
+	graphData, err := parseXdsRelationship(config)
+	if err != nil {
+		return err
+	}
+	dot, err := generateGraph(graphData)
+	if err != nil {
+		return err
+	}
+
+	if !monitor {
+		url := "http://dreampuf.github.io/GraphvizOnline/#" + dot
+		if err := openBrowser(url); err != nil {
+			return err
+		}
+	}
+
+	// save dot to file
+	f, err := os.Create("config_graph.dot")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write([]byte(dot))
+	if err != nil {
+		return err
+	}
+	fmt.Println("Config graph has been saved to config_graph.dot")
+	return nil
+}
+
+// struct stores the nodes and edges maps of graph
+type GraphData struct {
+	nodes     []map[string]string
+	relations []map[string]*treeset.Set
+}
+
+// parseXdsRelationship parses relationship between xds and stores them in GraphData
+func parseXdsRelationship(js []byte) (GraphData, error) {
+	var data map[string]interface{}
+	err := json.Unmarshal(js, &data)
+	if err != nil {
+		return GraphData{}, err
+	}
+	lds := make(map[string]string)
+	rds := make(map[string]string)
+	cds := make(map[string]string)
+	ldsToRds := make(map[string]*treeset.Set)
+	rdsToCds := make(map[string]*treeset.Set)
+
+	for _, config := range data["config"].([]interface{}) {
+		configMap := config.(map[string]interface{})
+		for _, xds := range configMap["xdsConfig"].([]interface{}) {
+			for key, value := range xds.(map[string]interface{}) {
+				if key == "status" {
+					continue
+				}
+				switch key {
+				case "listenerConfig":
+					for _, listeners := range value.(map[string]interface{}) {
+						for idx, listener := range listeners.([]interface{}) {
+							detail := listener.(map[string]interface{})["activeState"].(map[string]interface{})["listener"].(map[string]interface{})
+							name := detail["name"].(string)
+							id := "LDS" + strconv.Itoa(idx)
+							lds[name] = id
+							rdsSet := treeset.NewWithStringComparator()
+
+							for _, filterchain := range detail["filterChains"].([]interface{}) {
+								for _, filter := range filterchain.(map[string]interface{})["filters"].([]interface{}) {
+									rdsName := filter.(map[string]interface{})["typedConfig"].(map[string]interface{})["rds"].(map[string]interface{})["routeConfigName"].(string)
+									rdsSet.Add(rdsName)
+								}
+							}
+							ldsToRds[name] = rdsSet
+						}
+					}
+					break
+				case "routeConfig":
+					for _, routes := range value.(map[string]interface{}) {
+						for idx, route := range routes.([]interface{}) {
+							routeConfig := route.(map[string]interface{})["routeConfig"].(map[string]interface{})
+							name := routeConfig["name"].(string)
+							id := "RDS" + strconv.Itoa(idx)
+							rds[name] = id
+							cdsSet := treeset.NewWithStringComparator()
+
+							for _, virtualHost := range routeConfig["virtualHosts"].([]interface{}) {
+								for _, virtualRoutes := range virtualHost.(map[string]interface{})["routes"].([]interface{}) {
+									virtualRoute := virtualRoutes.(map[string]interface{})["route"].(map[string]interface{})
+									if weightedClusters, ok := virtualRoute["weightedClusters"]; ok {
+										for _, cluster := range weightedClusters.(map[string]interface{})["clusters"].([]interface{}) {
+											cdsName := cluster.(map[string]interface{})["name"].(string)
+											cdsSet.Add(cdsName)
+										}
+									} else {
+										cdsName := virtualRoute["cluster"].(string)
+										cdsSet.Add(cdsName)
+									}
+								}
+							}
+							rdsToCds[name] = cdsSet
+						}
+					}
+					break
+				case "clusterConfig":
+					for _, clusters := range value.(map[string]interface{}) {
+						for idx, cluster := range clusters.([]interface{}) {
+							name := cluster.(map[string]interface{})["cluster"].(map[string]interface{})["name"].(string)
+							id := "CDS" + strconv.Itoa(idx)
+							cds[name] = id
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	gData := GraphData{
+		nodes:     []map[string]string{lds, rds, cds},
+		relations: []map[string]*treeset.Set{ldsToRds, rdsToCds},
+	}
+
+	return gData, nil
+}
+
+// generateGraph generates dot string based on GraphData
+func generateGraph(data GraphData) (string, error) {
+	graphAst, err := gographviz.ParseString(`digraph G {}`)
+	if err != nil {
+		return "", err
+	}
+	graph := gographviz.NewGraph()
+	if err := gographviz.Analyse(graphAst, graph); err != nil {
+		return "", err
+	}
+
+	if err := graph.AddAttr("G", "rankdir", "LR"); err != nil {
+		return "", err
+	}
+
+	// different colors for xDS nodes
+	colors := map[string]string{"LDS": "#4285F4", "RDS": "#FBBC04", "CDS": "#34A853"}
+
+	for _, xDS := range data.nodes {
+		for name, node := range xDS {
+			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node, "fontcolor": "white", "fontname": "Roboto", "shape": "box", "style": `\""filled,rounded"\"`, "color": `\"` + colors[node[0:3]] + `\"`, "fillcolor": `\"` + colors[node[0:3]] + `\"`}); err != nil {
+				return "", err
+			}
+		}
+	}
+	for _, relations := range data.relations {
+		for src, set := range relations {
+			for _, dst := range set.Values() {
+				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, map[string]string{"penwidth": "0.3", "arrowsize": "0.3"}); err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+
+	return graph.String(), nil
+}
+
+// openBrowser opens url in browser based on platform
+func openBrowser(url string) error {
+	var err error
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+		break
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		break
+	case "darwin":
+		err = exec.Command("open", url).Start()
+		break
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+	if err != nil {
+		return err
 	}
 	return nil
 }

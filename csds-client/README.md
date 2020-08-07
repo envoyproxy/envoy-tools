@@ -8,10 +8,10 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
 * Run `make` to install dependencies and build a binary.
 
 # Running
-* run with `./bin/csds <flag>`, e.g. <br/><br/>
+* run with `csds-client <flag>`, e.g. <br/><br/>
    * auto authentication mode
-   ```
-   ./bin/csds \
+   ```bash
+   csds-client \
      -service_uri <uri> \
      -cloud_platform gcp \
      -authn_mode auto \
@@ -19,8 +19,8 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
      -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
-   ```
-   ./bin/csds \
+   ```bash
+   csds-client \
      -service_uri <uri> \
      -cloud_platform gcp \
      -authn_mode jwt \
@@ -54,6 +54,11 @@ Common options are exposed/controlled via command line flags, while control plan
 * ***-monitor_interval***: the interval of sending requests in monitor mode (e.g. 500ms, 2s, 1m, ...)
    * If this flag is not specified, the client will run only once.
    * If this flag is specified and the interval is greater than 0, the client will run continuously and send request based on the interval. Use `Ctrl+C` to exit.
+* ***-visualization***: option to visualize the relationship between xDS resources
+   * If this flag is not specified, the visualization mode is off by default
+   * The client will generate a `.dot` file and save it as `config_graph.dot`, then it will open the browser window automatically to show the graph parsed by dot.
+   * Each xDS node shown in the graph is labelled by index (e.g. LDS0, RDS0, RDS1,...) to make the graph more clear. The real name of xDS resource in config will show when the user hovers the mouse over each node.
+   * If **the visualization mode** and **the monitor mode** are enabled together, the client will only save graph dot data for the latest response without opening the browser to avoid frequent pop-ups of the browser due to short monitor interval.
 
 ## Output
 ```
