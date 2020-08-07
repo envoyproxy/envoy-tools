@@ -196,20 +196,20 @@ func (c *Client) Run() error {
 				}
 				continue
 			} else {
-				var err error
-				switch c.info.ApiVersion {
-				case "v2":
-					if err = streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient).CloseSend(); err != nil {
-						return err
-					}
-				}
 				return err
 			}
 		}
 		if c.info.MonitorInterval != 0 {
 			time.Sleep(c.info.MonitorInterval)
 		} else {
-			return nil
+			var err error
+			switch c.info.ApiVersion {
+			case "v2":
+				if err = streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient).CloseSend(); err != nil {
+					return err
+				}
+			}
+			return err
 		}
 	}
 }
