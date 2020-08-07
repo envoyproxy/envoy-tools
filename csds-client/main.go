@@ -9,7 +9,7 @@ import (
 // ParseFlags parses flags to ClientOptions
 func ParseFlags() client.ClientOptions {
 	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
-	platformPtr := flag.String("cloud_platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
+	platformPtr := flag.String("platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
 	authnModePtr := flag.String("authn_mode", "auto", "the method to use for authentication (e.g. auto, jwt, ...)")
 	apiVersionPtr := flag.String("api_version", "v2", "which xds api major version  to use (e.g. v2, v3 ...)")
 	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
