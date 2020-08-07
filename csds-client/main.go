@@ -4,20 +4,32 @@ import (
 	"envoy-tools/csds-client/client"
 	"flag"
 	"log"
+	"time"
 )
 
 // ParseFlags parses flags to ClientOptions
 func ParseFlags() client.ClientOptions {
-	uriPtr := flag.String("service_uri", "trafficdirector.googleapis.com:443", "the uri of the service to connect to")
-	platformPtr := flag.String("platform", "gcp", "the cloud platform (e.g. gcp, aws,  ...)")
-	authnModePtr := flag.String("authn_mode", "auto", "the method to use for authentication (e.g. auto, jwt, ...)")
-	apiVersionPtr := flag.String("api_version", "v2", "which xds api major version  to use (e.g. v2, v3 ...)")
-	requestFilePtr := flag.String("request_file", "", "yaml file that defines the csds request")
-	requestYamlPtr := flag.String("request_yaml", "", "yaml string that defines the csds request")
-	jwtPtr := flag.String("jwt_file", "", "path of the -jwt_file")
-	configFilePtr := flag.String("file_to_save_config", "", "file name to save configs returned by csds response")
-	monitorIntervalPtr := flag.Duration("monitor_interval", 0, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
-	visualizationPtr := flag.Bool("visualization", false, "option to visualize the relationship between xDS")
+	const uriDefault string = "trafficdirector.googleapis.com:443"
+	const platformDefault string = "gcp"
+	const authnModeDefault string = "auto"
+	const apiVersionDefault string = "v2"
+	const requestFileDefault string = ""
+	const requestYamlDefault string = ""
+	const jwtDefault string = ""
+	const configFileDefault string = ""
+	const monitorIntervalDefault time.Duration = 0
+	const visualizationDefault bool = false
+
+	uriPtr := flag.String("service_uri", uriDefault, "the uri of the service to connect to")
+	platformPtr := flag.String("platform", platformDefault, "the cloud platform (e.g. gcp, aws,  ...)")
+	authnModePtr := flag.String("authn_mode", authnModeDefault, "the method to use for authentication (e.g. auto, jwt, ...)")
+	apiVersionPtr := flag.String("api_version", apiVersionDefault, "which xds api major version  to use (e.g. v2, v3 ...)")
+	requestFilePtr := flag.String("request_file", requestFileDefault, "yaml file that defines the csds request")
+	requestYamlPtr := flag.String("request_yaml", requestYamlDefault, "yaml string that defines the csds request")
+	jwtPtr := flag.String("jwt_file", jwtDefault, "path of the -jwt_file")
+	configFilePtr := flag.String("file_to_save_config", configFileDefault, "file name to save configs returned by csds response")
+	monitorIntervalPtr := flag.Duration("monitor_interval", monitorIntervalDefault, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
+	visualizationPtr := flag.Bool("visualization", visualizationDefault, "option to visualize the relationship between xDS")
 
 	flag.Parse()
 
