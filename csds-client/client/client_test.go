@@ -19,7 +19,7 @@ import (
 // TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
 func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := Client{
-		info: ClientOptions{
+		opts: ClientOptions{
 			Platform:    "gcp",
 			ApiVersion:  "v2",
 			RequestFile: "./test_request.yaml",
@@ -45,7 +45,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 // TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.
 func TestParseNodeMatcherWithString(t *testing.T) {
 	c := Client{
-		info: ClientOptions{
+		opts: ClientOptions{
 			Platform:    "gcp",
 			ApiVersion:  "v2",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
@@ -71,7 +71,7 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 // TestParseNodeMatcherWithFileAndString tests parsing -request_file and -request_yaml to nodematcher.
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	c := Client{
-		info: ClientOptions{
+		opts: ClientOptions{
 			Platform:    "gcp",
 			RequestFile: "./test_request.yaml",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
@@ -126,7 +126,7 @@ func captureOutput(f func()) string {
 // TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
 	c := Client{
-		info: ClientOptions{
+		opts: ClientOptions{
 			Platform:   "gcp",
 			ApiVersion: "v2",
 		},
@@ -141,7 +141,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := captureOutput(func() {
-		if err := printOutResponse_v2(&response, c.info); err != nil {
+		if err := printOutResponse_v2(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -154,7 +154,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 // TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
 	c := Client{
-		info: ClientOptions{
+		opts: ClientOptions{
 			Platform:   "gcp",
 			ConfigFile: "test_config.json",
 			ApiVersion: "v2",
@@ -170,7 +170,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := captureOutput(func() {
-		if err := printOutResponse_v2(&response, c.info); err != nil {
+		if err := printOutResponse_v2(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})

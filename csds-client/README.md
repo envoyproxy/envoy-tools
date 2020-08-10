@@ -34,7 +34,7 @@ Common options are exposed/controlled via command line flags, while control plan
 ## Flags
 * ***-service_uri***: the uri of the service to connect to 
    * If this flag is not specified, it will be set to *trafficdirector.googleapis.com:443* as default.
-* ***-platform***: the cloud platform (e.g. gcp, aws,  ...)
+* ***-platform***: the platform (e.g. gcp, aws,  ...)
   * If this flag is not specified, it will be set to *gcp* as default.
   * This flag will be used for platform specific logic such as auto authentication.
 * ***-authn_mode***: the method to use for authentication (e.g. auto, jwt, ...)

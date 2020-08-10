@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// ParseFlags parses flags to ClientOptions
-func ParseFlags() client.ClientOptions {
+// GetClientOptionsFromFlags parses flags to ClientOptions
+func GetClientOptionsFromFlags() client.ClientOptions {
 	const uriDefault string = "trafficdirector.googleapis.com:443"
 	const platformDefault string = "gcp"
 	const authnModeDefault string = "auto"
@@ -21,7 +21,7 @@ func ParseFlags() client.ClientOptions {
 	const visualizationDefault bool = false
 
 	uriPtr := flag.String("service_uri", uriDefault, "the uri of the service to connect to")
-	platformPtr := flag.String("platform", platformDefault, "the cloud platform (e.g. gcp, aws,  ...)")
+	platformPtr := flag.String("platform", platformDefault, "the platform (e.g. gcp, aws,  ...)")
 	authnModePtr := flag.String("authn_mode", authnModeDefault, "the method to use for authentication (e.g. auto, jwt, ...)")
 	apiVersionPtr := flag.String("api_version", apiVersionDefault, "which xds api major version  to use (e.g. v2, v3 ...)")
 	requestFilePtr := flag.String("request_file", requestFileDefault, "yaml file that defines the csds request")
@@ -50,7 +50,7 @@ func ParseFlags() client.ClientOptions {
 }
 
 func main() {
-	c, err := client.New(ParseFlags())
+	c, err := client.New(GetClientOptionsFromFlags())
 	if err != nil {
 		log.Fatal(err)
 	}

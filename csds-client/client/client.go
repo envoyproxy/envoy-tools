@@ -36,26 +36,26 @@ type Client struct {
 
 	nodeMatcher []*envoy_type_matcher.NodeMatcher
 	metadata    metadata.MD
-	info        ClientOptions
+	opts        ClientOptions
 }
 
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
 // if -request_file and -request_yaml are both set, the values in this yaml string will override and
 // merge with the request loaded from -request_file
 func (c *Client) parseNodeMatcher() error {
-	if c.info.RequestFile == "" && c.info.RequestYaml == "" {
+	if c.opts.RequestFile == "" && c.opts.RequestYaml == "" {
 		return errors.New("missing request yaml")
 	}
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
-	if err := parseYaml(c.info.RequestFile, c.info.RequestYaml, &nodematchers); err != nil {
+	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
 		return err
 	}
 
 	c.nodeMatcher = nodematchers
 
 	// check if required fields exist in nodematcher
-	switch c.info.Platform {
+	switch c.opts.Platform {
 	case "gcp":
 		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
 		for _, key := range keys {
@@ -64,7 +64,7 @@ func (c *Client) parseNodeMatcher() error {
 			}
 		}
 	default:
-		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.Platform)
+		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 	}
 
 	return nil
@@ -73,12 +73,12 @@ func (c *Client) parseNodeMatcher() error {
 // connWithAuth connects to uri with authentication
 func (c *Client) connWithAuth() error {
 	var scope string
-	switch c.info.AuthnMode {
+	switch c.opts.AuthnMode {
 	case "jwt":
-		if c.info.Jwt == "" {
+		if c.opts.Jwt == "" {
 			return errors.New("missing jwt file")
 		}
-		switch c.info.Platform {
+		switch c.opts.Platform {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
@@ -86,21 +86,21 @@ func (c *Client) connWithAuth() error {
 				return err
 			}
 			creds := credentials.NewClientTLSFromCert(pool, "")
-			perRPC, err := oauth.NewServiceAccountFromFile(c.info.Jwt, scope)
+			perRPC, err := oauth.NewServiceAccountFromFile(c.opts.Jwt, scope)
 			if err != nil {
 				return err
 			}
 
-			c.clientConn, err = grpc.Dial(c.info.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
 			return nil
 		default:
-			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.Platform)
+			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 		}
 	case "auto":
-		switch c.info.Platform {
+		switch c.opts.Platform {
 		case "gcp":
 			scope = "https://www.googleapis.com/auth/cloud-platform"
 			pool, err := x509.SystemCertPool()
@@ -115,7 +115,7 @@ func (c *Client) connWithAuth() error {
 
 			// parse GCP project number as header for authentication
 			var key string
-			switch c.info.Uri {
+			switch c.opts.Uri {
 			case "trafficdirector.googleapis.com:443":
 				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 			}
@@ -123,7 +123,7 @@ func (c *Client) connWithAuth() error {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.clientConn, err = grpc.Dial(c.info.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = grpc.Dial(c.opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 			if err != nil {
 				return err
 			}
@@ -139,13 +139,13 @@ func (c *Client) connWithAuth() error {
 // New creates a new client
 func New(option ClientOptions) (*Client, error) {
 	c := &Client{
-		info: option,
+		opts: option,
 	}
-	if c.info.Platform != "gcp" {
-		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.info.Platform)
+	if c.opts.Platform != "gcp" {
+		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 	}
-	if c.info.ApiVersion != "v2" {
-		return nil, fmt.Errorf("%s api version is not supported, list of supported api versions: v2", c.info.ApiVersion)
+	if c.opts.ApiVersion != "v2" {
+		return nil, fmt.Errorf("%s api version is not supported, list of supported api versions: v2", c.opts.ApiVersion)
 	}
 
 	if err := c.parseNodeMatcher(); err != nil {
@@ -171,7 +171,7 @@ func (c *Client) Run() error {
 
 	var streamClientStatus interface{}
 	var err error
-	switch c.info.ApiVersion {
+	switch c.opts.ApiVersion {
 	case "v2":
 		c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.clientConn)
 		streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
@@ -186,7 +186,7 @@ func (c *Client) Run() error {
 			// timeout error
 			// retry to connect
 			if strings.Contains(err.Error(), "RpcSecurityPolicy") {
-				switch c.info.ApiVersion {
+				switch c.opts.ApiVersion {
 				case "v2":
 					c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.clientConn)
 					streamClientStatus, err = c.csdsClient.(csdspb_v2.ClientStatusDiscoveryServiceClient).StreamClientStatus(ctx)
@@ -199,11 +199,11 @@ func (c *Client) Run() error {
 				return err
 			}
 		}
-		if c.info.MonitorInterval != 0 {
-			time.Sleep(c.info.MonitorInterval)
+		if c.opts.MonitorInterval != 0 {
+			time.Sleep(c.opts.MonitorInterval)
 		} else {
 			var err error
-			switch c.info.ApiVersion {
+			switch c.opts.ApiVersion {
 			case "v2":
 				if err = streamClientStatus.(csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient).CloseSend(); err != nil {
 					return err
@@ -229,7 +229,7 @@ func (c *Client) doRequest(streamClientStatus interface{}) error {
 			return err
 		}
 		// post process response
-		if err := printOutResponse_v2(resp, c.info); err != nil {
+		if err := printOutResponse_v2(resp, c.opts); err != nil {
 			return err
 		}
 	}
