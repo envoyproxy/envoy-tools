@@ -18,7 +18,7 @@ import (
 
 // TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
 func TestParseNodeMatcherWithFile(t *testing.T) {
-	c := Client{
+	c := ClientV2{
 		opts: ClientOptions{
 			Platform:    "gcp",
 			ApiVersion:  "v2",
@@ -44,7 +44,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 
 // TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.
 func TestParseNodeMatcherWithString(t *testing.T) {
-	c := Client{
+	c := ClientV2{
 		opts: ClientOptions{
 			Platform:    "gcp",
 			ApiVersion:  "v2",
@@ -70,7 +70,7 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 
 // TestParseNodeMatcherWithFileAndString tests parsing -request_file and -request_yaml to nodematcher.
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
-	c := Client{
+	c := ClientV2{
 		opts: ClientOptions{
 			Platform:    "gcp",
 			RequestFile: "./test_request.yaml",
@@ -125,7 +125,7 @@ func captureOutput(f func()) string {
 
 // TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
-	c := Client{
+	c := ClientV2{
 		opts: ClientOptions{
 			Platform:   "gcp",
 			ApiVersion: "v2",
@@ -153,7 +153,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 
 // TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
-	c := Client{
+	c := ClientV2{
 		opts: ClientOptions{
 			Platform:   "gcp",
 			ConfigFile: "test_config.json",
