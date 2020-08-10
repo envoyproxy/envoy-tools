@@ -50,7 +50,16 @@ func GetClientOptionsFromFlags() client.ClientOptions {
 }
 
 func main() {
-	c, err := client.New(GetClientOptionsFromFlags())
+	var c client.Client
+	var err error
+	clientOpts := GetClientOptionsFromFlags()
+
+	if clientOpts.ApiVersion == "v2" {
+		c, err = client.NewV2(clientOpts)
+	} else {
+		log.Fatal("invalid api version")
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
