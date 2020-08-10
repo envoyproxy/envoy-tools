@@ -27,7 +27,7 @@ func GetClientOptionsFromFlags() client.ClientOptions {
 	requestFilePtr := flag.String("request_file", requestFileDefault, "yaml file that defines the csds request")
 	requestYamlPtr := flag.String("request_yaml", requestYamlDefault, "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", jwtDefault, "path of the -jwt_file")
-	configFilePtr := flag.String("file_to_save_config", configFileDefault, "file name to save configs returned by csds response")
+	configFilePtr := flag.String("output_file", configFileDefault, "file name to save configs returned by csds response")
 	monitorIntervalPtr := flag.Duration("monitor_interval", monitorIntervalDefault, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 	visualizationPtr := flag.Bool("visualization", visualizationDefault, "option to visualize the relationship between xDS")
 

@@ -355,3 +355,40 @@ func openBrowser(url string) error {
 	}
 	return nil
 }
+
+// printDetailedConfig prints out the detailed xDS config and calls visualize() if it is enabled
+func printDetailedConfig(response proto.Message, opts ClientOptions) error {
+	// parse response to json
+	// format the json and resolve google.protobuf.Any types
+	m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
+	out, err := m.Marshal(response)
+	if err != nil {
+		return err
+	}
+
+	if opts.ConfigFile == "" {
+		// output the configuration to stdout by default
+		fmt.Println("Detailed Config:")
+		fmt.Println(string(out))
+	} else {
+		// write the configuration to the file
+		f, err := os.Create(opts.ConfigFile)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.Write(out)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Config has been saved to %v\n", opts.ConfigFile)
+	}
+
+	// call visualize to enable visualization
+	if opts.Visualization {
+		if err := visualize(out, opts.MonitorInterval != 0); err != nil {
+			return err
+		}
+	}
+	return nil
+}
