@@ -25,8 +25,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// isJson checks if str is a valid json format string
-func isJson(str string) bool {
+// IsJson checks if str is a valid json format string
+func IsJson(str string) bool {
 	input := []byte(str)
 	decoder := json.NewDecoder(bytes.NewReader(input))
 	for {
@@ -41,8 +41,8 @@ func isJson(str string) bool {
 	return true
 }
 
-// parseYaml is a helper method for parsing csds request yaml to nodematchers
-func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
+// ParseYaml is a helper method for parsing csds request yaml to nodematchers
+func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	if path != "" {
 		// parse yaml to json
 		filename, err := filepath.Abs(path)
@@ -82,7 +82,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 		var js []byte
 		var err error
 		// json input
-		if isJson(yamlStr) {
+		if IsJson(yamlStr) {
 			js = []byte(yamlStr)
 		} else {
 			// parse the yaml input into json
@@ -121,8 +121,8 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 	return nil
 }
 
-// getValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
-func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
+// GetValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
+func GetValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
 			for _, path := range mt.Path {
@@ -175,20 +175,20 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
-// visualize calls parseXdsRelationship and use the result to visualize
-func visualize(config []byte, monitor bool) error {
-	graphData, err := parseXdsRelationship(config)
+// Visualize calls ParseXdsRelationship and use the result to Visualize
+func Visualize(config []byte, monitor bool) error {
+	graphData, err := ParseXdsRelationship(config)
 	if err != nil {
 		return err
 	}
-	dot, err := generateGraph(graphData)
+	dot, err := GenerateGraph(graphData)
 	if err != nil {
 		return err
 	}
 
 	if !monitor {
 		url := "http://dreampuf.github.io/GraphvizOnline/#" + dot
-		if err := openBrowser(url); err != nil {
+		if err := OpenBrowser(url); err != nil {
 			return err
 		}
 	}
@@ -213,8 +213,8 @@ type GraphData struct {
 	relations []map[string]*treeset.Set
 }
 
-// parseXdsRelationship parses relationship between xds and stores them in GraphData
-func parseXdsRelationship(js []byte) (GraphData, error) {
+// ParseXdsRelationship parses relationship between xds and stores them in GraphData
+func ParseXdsRelationship(js []byte) (GraphData, error) {
 	var data map[string]interface{}
 	err := json.Unmarshal(js, &data)
 	if err != nil {
@@ -299,8 +299,8 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 	return gData, nil
 }
 
-// generateGraph generates dot string based on GraphData
-func generateGraph(data GraphData) (string, error) {
+// GenerateGraph generates dot string based on GraphData
+func GenerateGraph(data GraphData) (string, error) {
 	graphAst, err := gographviz.ParseString(`digraph G {}`)
 	if err != nil {
 		return "", err
@@ -337,8 +337,8 @@ func generateGraph(data GraphData) (string, error) {
 	return graph.String(), nil
 }
 
-// openBrowser opens url in browser based on platform
-func openBrowser(url string) error {
+// OpenBrowser opens url in browser based on platform
+func OpenBrowser(url string) error {
 	var err error
 	switch runtime.GOOS {
 	case "linux":
@@ -356,8 +356,8 @@ func openBrowser(url string) error {
 	return nil
 }
 
-// printDetailedConfig prints out the detailed xDS config and calls visualize() if it is enabled
-func printDetailedConfig(response proto.Message, opts ClientOptions) error {
+// PrintDetailedConfig prints out the detailed xDS config and calls visualize() if it is enabled
+func PrintDetailedConfig(response proto.Message, opts ClientOptions) error {
 	// parse response to json
 	// format the json and resolve google.protobuf.Any types
 	m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
@@ -386,7 +386,7 @@ func printDetailedConfig(response proto.Message, opts ClientOptions) error {
 
 	// call visualize to enable visualization
 	if opts.Visualization {
-		if err := visualize(out, opts.MonitorInterval != 0); err != nil {
+		if err := Visualize(out, opts.MonitorInterval != 0); err != nil {
 			return err
 		}
 	}

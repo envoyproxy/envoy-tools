@@ -1,8 +1,9 @@
-package client
+package clientV2
 
 import (
 	"context"
 	"crypto/x509"
+	"envoy-tools/csds-client/client"
 	"errors"
 	"fmt"
 	"io"
@@ -24,7 +25,7 @@ type ClientV2 struct {
 
 	nodeMatcher []*envoy_type_matcher.NodeMatcher
 	metadata    metadata.MD
-	opts        ClientOptions
+	opts        client.ClientOptions
 }
 
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
@@ -36,7 +37,7 @@ func (c *ClientV2) parseNodeMatcher() error {
 	}
 
 	var nodematchers []*envoy_type_matcher.NodeMatcher
-	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
+	if err := client.ParseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
 		return err
 	}
 
@@ -47,7 +48,7 @@ func (c *ClientV2) parseNodeMatcher() error {
 	case "gcp":
 		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
 		for _, key := range keys {
-			if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
+			if value := client.GetValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
 				return fmt.Errorf("missing field %v in NodeMatcher", key)
 			}
 		}
@@ -107,7 +108,7 @@ func (c *ClientV2) connWithAuth() error {
 			case "trafficdirector.googleapis.com:443":
 				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 			}
-			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
+			if projectNum := client.GetValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
@@ -124,8 +125,8 @@ func (c *ClientV2) connWithAuth() error {
 	}
 }
 
-// NewV2 creates a new client with v2 api version
-func NewV2(option ClientOptions) (*ClientV2, error) {
+// New creates a new client with v2 api version
+func New(option client.ClientOptions) (*ClientV2, error) {
 	c := &ClientV2{
 		opts: option,
 	}
@@ -202,15 +203,15 @@ func (c *ClientV2) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryS
 		return err
 	}
 	// post process response
-	if err := printOutResponse_v2(resp, c.opts); err != nil {
+	if err := printOutResponse(resp, c.opts); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// parseConfigStatus_v2 parses each xds config status to string
-func parseConfigStatus_v2(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
+// parseConfigStatus parses each xds config status to string
+func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 	var configStatus []string
 	for _, perXdsConfig := range xdsConfig {
 		status := perXdsConfig.GetStatus().String()
@@ -231,8 +232,8 @@ func parseConfigStatus_v2(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 	return configStatus
 }
 
-// printOutResponse_v2 processes response and print
-func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, opts ClientOptions) error {
+// printOutResponse processes response and print
+func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.ClientOptions) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -264,7 +265,7 @@ func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, opts ClientOp
 			hasXdsConfig = true
 
 			// parse config status
-			configStatus := parseConfigStatus_v2(config.GetXdsConfig())
+			configStatus := parseConfigStatus(config.GetXdsConfig())
 			fmt.Printf("%-50s %-30s ", id, xdsType)
 
 			for i := 0; i < len(configStatus); i++ {
@@ -281,7 +282,7 @@ func printOutResponse_v2(response *csdspb_v2.ClientStatusResponse, opts ClientOp
 	}
 
 	if hasXdsConfig {
-		if err := printDetailedConfig(response, opts); err != nil {
+		if err := client.PrintDetailedConfig(response, opts); err != nil {
 			return err
 		}
 	}
