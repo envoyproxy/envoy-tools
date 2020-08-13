@@ -133,9 +133,6 @@ func New(option client.ClientOptions) (*ClientV2, error) {
 	if c.opts.Platform != "gcp" {
 		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 	}
-	if c.opts.ApiVersion != "v2" {
-		return nil, fmt.Errorf("%s api version is not supported, list of supported api versions: v2", c.opts.ApiVersion)
-	}
 
 	if err := c.parseNodeMatcher(); err != nil {
 		return nil, err
