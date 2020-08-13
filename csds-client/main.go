@@ -2,7 +2,7 @@ package main
 
 import (
 	"envoy-tools/csds-client/client"
-	"envoy-tools/csds-client/client/v2"
+	client_v2 "envoy-tools/csds-client/client/v2"
 	"flag"
 	"log"
 	"time"
@@ -56,7 +56,7 @@ func main() {
 	clientOpts := GetClientOptionsFromFlags()
 
 	if clientOpts.ApiVersion == "v2" {
-		c, err = clientV2.New(clientOpts)
+		c, err = client_v2.New(clientOpts)
 	} else {
 		log.Fatal("invalid api version")
 	}
