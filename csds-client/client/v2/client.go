@@ -1,3 +1,4 @@
+// Package client/v2 implements the client interface for v2 transport api version in specific
 package client
 
 import (
