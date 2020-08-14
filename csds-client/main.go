@@ -33,7 +33,7 @@ const configFileDefault string = ""
 const monitorIntervalDefault time.Duration = 0
 const visualizationDefault bool = false
 
-// init binds flags with valuables
+// init binds flags with variables
 func init() {
 	flag.StringVar(&uri, "service_uri", uriDefault, "the uri of the service to connect to")
 	flag.StringVar(&platform, "platform", platformDefault, "the platform (e.g. gcp, aws,  ...)")
