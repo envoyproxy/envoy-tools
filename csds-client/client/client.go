@@ -19,8 +19,10 @@ type ClientOptions struct {
 	Visualization   bool
 }
 
-// Client is an interface of CSDS Client
-// Packages which implement this interface in different api versions should have New() and Run() methods
+// Client implements CSDS Client of a particular version. Upon creation of the new client it is
+// expected that connection to the CSDS server is established.
 type Client interface {
+	// Run must send an CSDS request to the server and output the response according to the
+	// options provided during Client creation.
 	Run() error
 }

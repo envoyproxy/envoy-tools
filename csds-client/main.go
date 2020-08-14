@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// GetClientOptionsAndApiVersionFromFlags parses flags to ClientOptions and api version
-func GetClientOptionsAndApiVersionFromFlags() (client.ClientOptions, string) {
+func main() {
+	// parse flags
 	const uriDefault string = "trafficdirector.googleapis.com:443"
 	const platformDefault string = "gcp"
 	const authnModeDefault string = "auto"
@@ -24,7 +24,7 @@ func GetClientOptionsAndApiVersionFromFlags() (client.ClientOptions, string) {
 	uriPtr := flag.String("service_uri", uriDefault, "the uri of the service to connect to")
 	platformPtr := flag.String("platform", platformDefault, "the platform (e.g. gcp, aws,  ...)")
 	authnModePtr := flag.String("authn_mode", authnModeDefault, "the method to use for authentication (e.g. auto, jwt, ...)")
-	apiVersionPtr := flag.String("api_version", apiVersionDefault, "which xds api major version  to use (e.g. v2, v3 ...)")
+	apiVersionPtr := flag.String("api_version", apiVersionDefault, "which xds api major version to use (e.g. v2, v3 ...)")
 	requestFilePtr := flag.String("request_file", requestFileDefault, "yaml file that defines the csds request")
 	requestYamlPtr := flag.String("request_yaml", requestYamlDefault, "yaml string that defines the csds request")
 	jwtPtr := flag.String("jwt_file", jwtDefault, "path of the -jwt_file")
@@ -34,7 +34,7 @@ func GetClientOptionsAndApiVersionFromFlags() (client.ClientOptions, string) {
 
 	flag.Parse()
 
-	f := client.ClientOptions{
+	clientOpts := client.ClientOptions{
 		Uri:             *uriPtr,
 		Platform:        *platformPtr,
 		AuthnMode:       *authnModePtr,
@@ -46,15 +46,9 @@ func GetClientOptionsAndApiVersionFromFlags() (client.ClientOptions, string) {
 		Visualization:   *visualizationPtr,
 	}
 
-	return f, *apiVersionPtr
-}
-
-func main() {
 	var c client.Client
 	var err error
-	clientOpts, apiVersion := GetClientOptionsAndApiVersionFromFlags()
-
-	if apiVersion == "v2" {
+	if *apiVersionPtr == "v2" {
 		c, err = client_v2.New(clientOpts)
 	} else {
 		log.Fatal("invalid api version")
