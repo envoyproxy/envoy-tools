@@ -11,7 +11,6 @@ type ClientOptions struct {
 	Uri             string
 	Platform        string
 	AuthnMode       string
-	ApiVersion      string
 	RequestFile     string
 	RequestYaml     string
 	Jwt             string

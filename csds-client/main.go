@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// GetClientOptionsFromFlags parses flags to ClientOptions
-func GetClientOptionsFromFlags() client.ClientOptions {
+// GetClientOptionsAndApiVersionFromFlags parses flags to ClientOptions and api version
+func GetClientOptionsAndApiVersionFromFlags() (client.ClientOptions, string) {
 	const uriDefault string = "trafficdirector.googleapis.com:443"
 	const platformDefault string = "gcp"
 	const authnModeDefault string = "auto"
@@ -38,7 +38,6 @@ func GetClientOptionsFromFlags() client.ClientOptions {
 		Uri:             *uriPtr,
 		Platform:        *platformPtr,
 		AuthnMode:       *authnModePtr,
-		ApiVersion:      *apiVersionPtr,
 		RequestFile:     *requestFilePtr,
 		RequestYaml:     *requestYamlPtr,
 		Jwt:             *jwtPtr,
@@ -47,15 +46,15 @@ func GetClientOptionsFromFlags() client.ClientOptions {
 		Visualization:   *visualizationPtr,
 	}
 
-	return f
+	return f, *apiVersionPtr
 }
 
 func main() {
 	var c client.Client
 	var err error
-	clientOpts := GetClientOptionsFromFlags()
+	clientOpts, apiVersion := GetClientOptionsAndApiVersionFromFlags()
 
-	if clientOpts.ApiVersion == "v2" {
+	if apiVersion == "v2" {
 		c, err = client_v2.New(clientOpts)
 	} else {
 		log.Fatal("invalid api version")

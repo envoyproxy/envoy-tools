@@ -23,7 +23,6 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	c := ClientV2{
 		opts: client.ClientOptions{
 			Platform:    "gcp",
-			ApiVersion:  "v2",
 			RequestFile: "./test_request.yaml",
 		},
 	}
@@ -49,7 +48,6 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	c := ClientV2{
 		opts: client.ClientOptions{
 			Platform:    "gcp",
-			ApiVersion:  "v2",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
@@ -77,7 +75,6 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 			Platform:    "gcp",
 			RequestFile: "./test_request.yaml",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
-			ApiVersion:  "v2",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
@@ -129,8 +126,7 @@ func captureOutput(f func()) string {
 func TestParseResponseWithoutNodeId(t *testing.T) {
 	c := ClientV2{
 		opts: client.ClientOptions{
-			Platform:   "gcp",
-			ApiVersion: "v2",
+			Platform: "gcp",
 		},
 	}
 	filename, _ := filepath.Abs("./response_without_nodeid_test.json")
@@ -159,7 +155,6 @@ func TestParseResponseWithNodeId(t *testing.T) {
 		opts: client.ClientOptions{
 			Platform:   "gcp",
 			ConfigFile: "test_config.json",
-			ApiVersion: "v2",
 		},
 	}
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
