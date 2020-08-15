@@ -8,6 +8,7 @@ require (
 	github.com/emirpasic/gods v1.12.0
 	github.com/envoyproxy/go-control-plane v0.9.6
 	github.com/ghodss/yaml v1.0.0
+	github.com/golang/mock v1.4.3
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3 // indirect
 	golang.org/x/sys v0.0.0-20190412213103-97732733099d // indirect
 	google.golang.org/grpc v1.30.0

@@ -17,7 +17,6 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/ghodss/yaml"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -26,8 +25,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-// isJson checks if str is a valid json format string
-func isJson(str string) bool {
+// IsJson checks if str is a valid json format string
+func IsJson(str string) bool {
 	input := []byte(str)
 	decoder := json.NewDecoder(bytes.NewReader(input))
 	for {
@@ -42,8 +41,8 @@ func isJson(str string) bool {
 	return true
 }
 
-// parseYaml is a helper method for parsing csds request yaml to nodematchers
-func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
+// ParseYaml is a helper method for parsing csds request yaml to nodematchers
+func ParseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatcher) error {
 	if path != "" {
 		// parse yaml to json
 		filename, err := filepath.Abs(path)
@@ -83,7 +82,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 		var js []byte
 		var err error
 		// json input
-		if isJson(yamlStr) {
+		if IsJson(yamlStr) {
 			js = []byte(yamlStr)
 		} else {
 			// parse the yaml input into json
@@ -122,8 +121,8 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher.NodeMatch
 	return nil
 }
 
-// getValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
-func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
+// GetValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
+func GetValueByKeyFromNodeMatcher(nms []*envoy_type_matcher.NodeMatcher, key string) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
 			for _, path := range mt.Path {
@@ -176,128 +175,20 @@ func (r *TypeResolver) FindExtensionByNumber(message protoreflect.FullName, fiel
 	return nil, protoregistry.NotFound
 }
 
-// parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*csdspb.PerXdsConfig) []string {
-	var configStatus []string
-	for _, perXdsConfig := range xdsConfig {
-		status := perXdsConfig.GetStatus().String()
-		var xds string
-		if perXdsConfig.GetClusterConfig() != nil {
-			xds = "CDS"
-		} else if perXdsConfig.GetListenerConfig() != nil {
-			xds = "LDS"
-		} else if perXdsConfig.GetRouteConfig() != nil {
-			xds = "RDS"
-		} else if perXdsConfig.GetScopedRouteConfig() != nil {
-			xds = "SRDS"
-		}
-		if status != "" && xds != "" {
-			configStatus = append(configStatus, xds+"   "+status)
-		}
-	}
-	return configStatus
-}
-
-// printOutResponse processes response and print
-func printOutResponse(response *csdspb.ClientStatusResponse, info Flag) error {
-	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
-		fmt.Printf("No xDS clients connected.\n")
-		return nil
-	} else {
-		fmt.Printf("%-50s %-30s %-30s \n", "Client ID", "xDS stream type", "Config Status")
-	}
-
-	var hasXdsConfig bool
-
-	for _, config := range response.GetConfig() {
-		var id string
-		var xdsType string
-		if config.GetNode() != nil {
-			id = config.GetNode().GetId()
-			metadata := config.GetNode().GetMetadata().AsMap()
-
-			// control plane is expected to use "XDS_STREAM_TYPE" to communicate
-			// the stream type of the connected client in the response.
-			if metadata["XDS_STREAM_TYPE"] != nil {
-				xdsType = metadata["XDS_STREAM_TYPE"].(string)
-			}
-		}
-
-		if config.GetXdsConfig() == nil {
-			if config.GetNode() != nil {
-				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, "N/A")
-			}
-		} else {
-			hasXdsConfig = true
-
-			// parse config status
-			configStatus := parseConfigStatus(config.GetXdsConfig())
-			fmt.Printf("%-50s %-30s ", id, xdsType)
-
-			for i := 0; i < len(configStatus); i++ {
-				if i == 0 {
-					fmt.Printf("%-30s \n", configStatus[i])
-				} else {
-					fmt.Printf("%-50s %-30s %-30s \n", "", "", configStatus[i])
-				}
-			}
-			if len(configStatus) == 0 {
-				fmt.Printf("\n")
-			}
-		}
-	}
-
-	if hasXdsConfig {
-		// parse response to json
-		// format the json and resolve google.protobuf.Any types
-		m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
-		out, err := m.Marshal(response)
-		if err != nil {
-			return err
-		}
-
-		if info.configFile == "" {
-			// output the configuration to stdout by default
-			fmt.Println("Detailed Config:")
-			fmt.Println(string(out))
-		} else {
-			// write the configuration to the file
-			f, err := os.Create(info.configFile)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			_, err = f.Write(out)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("Config has been saved to %v\n", info.configFile)
-		}
-
-		// call visualize to enable visualization
-		if info.visualization {
-			if err := visualize(out, info.monitorInterval != 0); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// visualize calls parseXdsRelationship and use the result to visualize
-func visualize(config []byte, monitor bool) error {
-	graphData, err := parseXdsRelationship(config)
+// Visualize calls ParseXdsRelationship and use the result to Visualize
+func Visualize(config []byte, monitor bool) error {
+	graphData, err := ParseXdsRelationship(config)
 	if err != nil {
 		return err
 	}
-	dot, err := generateGraph(graphData)
+	dot, err := GenerateGraph(graphData)
 	if err != nil {
 		return err
 	}
 
 	if !monitor {
 		url := "http://dreampuf.github.io/GraphvizOnline/#" + dot
-		if err := openBrowser(url); err != nil {
+		if err := OpenBrowser(url); err != nil {
 			return err
 		}
 	}
@@ -322,8 +213,8 @@ type GraphData struct {
 	relations []map[string]*treeset.Set
 }
 
-// parseXdsRelationship parses relationship between xds and stores them in GraphData
-func parseXdsRelationship(js []byte) (GraphData, error) {
+// ParseXdsRelationship parses relationship between xds and stores them in GraphData
+func ParseXdsRelationship(js []byte) (GraphData, error) {
 	var data map[string]interface{}
 	err := json.Unmarshal(js, &data)
 	if err != nil {
@@ -361,7 +252,6 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 							ldsToRds[name] = rdsSet
 						}
 					}
-					break
 				case "routeConfig":
 					for _, routes := range value.(map[string]interface{}) {
 						for idx, route := range routes.([]interface{}) {
@@ -388,7 +278,6 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 							rdsToCds[name] = cdsSet
 						}
 					}
-					break
 				case "clusterConfig":
 					for _, clusters := range value.(map[string]interface{}) {
 						for idx, cluster := range clusters.([]interface{}) {
@@ -397,7 +286,6 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 							cds[name] = id
 						}
 					}
-					break
 				}
 			}
 		}
@@ -411,8 +299,8 @@ func parseXdsRelationship(js []byte) (GraphData, error) {
 	return gData, nil
 }
 
-// generateGraph generates dot string based on GraphData
-func generateGraph(data GraphData) (string, error) {
+// GenerateGraph generates dot string based on GraphData
+func GenerateGraph(data GraphData) (string, error) {
 	graphAst, err := gographviz.ParseString(`digraph G {}`)
 	if err != nil {
 		return "", err
@@ -449,24 +337,58 @@ func generateGraph(data GraphData) (string, error) {
 	return graph.String(), nil
 }
 
-// openBrowser opens url in browser based on platform
-func openBrowser(url string) error {
+// OpenBrowser opens url in browser based on platform
+func OpenBrowser(url string) error {
 	var err error
 	switch runtime.GOOS {
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
-		break
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-		break
 	case "darwin":
 		err = exec.Command("open", url).Start()
-		break
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+// PrintDetailedConfig prints out the detailed xDS config and calls visualize() if it is enabled
+func PrintDetailedConfig(response proto.Message, opts ClientOptions) error {
+	// parse response to json
+	// format the json and resolve google.protobuf.Any types
+	m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}
+	out, err := m.Marshal(response)
+	if err != nil {
+		return err
+	}
+
+	if opts.ConfigFile == "" {
+		// output the configuration to stdout by default
+		fmt.Println("Detailed Config:")
+		fmt.Println(string(out))
+	} else {
+		// write the configuration to the file
+		f, err := os.Create(opts.ConfigFile)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.Write(out)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Config has been saved to %v\n", opts.ConfigFile)
+	}
+
+	// call visualize to enable visualization
+	if opts.Visualization {
+		if err := Visualize(out, opts.MonitorInterval != 0); err != nil {
+			return err
+		}
 	}
 	return nil
 }

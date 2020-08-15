@@ -15,7 +15,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
      -service_uri <uri> \
      -cloud_platform gcp \
      -authn_mode auto \
-     -api_version v2 \
+     -api_version 2 \
      -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
@@ -24,7 +24,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
      -service_uri <uri> \
      -cloud_platform gcp \
      -authn_mode jwt \
-     -api_version v2 \
+     -api_version 2 \
      -request_file <path to csds request yaml file> \
      -jwt_file <path to jwt key>
   ```
@@ -34,15 +34,15 @@ Common options are exposed/controlled via command line flags, while control plan
 ## Flags
 * ***-service_uri***: the uri of the service to connect to 
    * If this flag is not specified, it will be set to *trafficdirector.googleapis.com:443* as default.
-* ***-cloud_platform***: the cloud platform (e.g. gcp, aws,  ...)
+* ***-platform***: the platform (e.g. gcp, aws,  ...)
   * If this flag is not specified, it will be set to *gcp* as default.
   * This flag will be used for platform specific logic such as auto authentication.
 * ***-authn_mode***: the method to use for authentication (e.g. auto, jwt, ...)
   * If this flag is not specified, it will be set to *auto* as default.
   * If it’s set to *auto*, the credentials will be obtained automatically based on different cloud platforms.
   * If it’s set to *jwt*, the credentials will be obtained from the jwt file which is specified by the ***-jwt_file*** flag.
-* ***-api_version***: which xds api major version to use (e.g. v2, v3 ...)
-  * If this flag is not specified, it will be set to *v2* as default.
+* ***-api_version***: which xds api major version to use (e.g. 2, 3 ...)
+  * If this flag is not specified, it will be set to *2* as default.
 * ***-jwt_file***: path of the jwt_file
 * ***-request_file***: yaml file that defines the csds request
   * If this flag is missing, ***-request_yaml*** is required.

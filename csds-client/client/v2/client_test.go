@@ -1,8 +1,10 @@
+// Unit Tests for client/v2
 package client
 
 import (
 	"bytes"
 	"encoding/json"
+	"envoy-tools/csds-client/client"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,16 +14,16 @@ import (
 	"sync"
 	"testing"
 
-	csdspb "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
 func TestParseNodeMatcherWithFile(t *testing.T) {
-	c := Client{
-		info: Flag{
-			platform:    "gcp",
-			requestFile: "./test_request.yaml",
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:    "gcp",
+			RequestFile: "./test_request.yaml",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
@@ -43,10 +45,10 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 
 // TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.
 func TestParseNodeMatcherWithString(t *testing.T) {
-	c := Client{
-		info: Flag{
-			platform:    "gcp",
-			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:    "gcp",
+			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
 		},
 	}
 	err := c.parseNodeMatcher()
@@ -68,11 +70,11 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 
 // TestParseNodeMatcherWithFileAndString tests parsing -request_file and -request_yaml to nodematcher.
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
-	c := Client{
-		info: Flag{
-			platform:    "gcp",
-			requestFile: "./test_request.yaml",
-			requestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:    "gcp",
+			RequestFile: "./test_request.yaml",
+			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id_from_cli\"}}]}",
 		},
 	}
 	if err := c.parseNodeMatcher(); err != nil {
@@ -122,9 +124,9 @@ func captureOutput(f func()) string {
 
 // TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
-	c := Client{
-		info: Flag{
-			platform: "gcp",
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform: "gcp",
 		},
 	}
 	filename, _ := filepath.Abs("./response_without_nodeid_test.json")
@@ -132,12 +134,12 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	var response csdspb.ClientStatusResponse
+	var response csdspb_v2.ClientStatusResponse
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := captureOutput(func() {
-		if err := printOutResponse(&response, c.info); err != nil {
+		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -149,10 +151,10 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 
 // TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
-	c := Client{
-		info: Flag{
-			platform:   "gcp",
-			configFile: "test_config.json",
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:   "gcp",
+			ConfigFile: "test_config.json",
 		},
 	}
 	filename, _ := filepath.Abs("./response_with_nodeid_test.json")
@@ -160,12 +162,12 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	var response csdspb.ClientStatusResponse
+	var response csdspb_v2.ClientStatusResponse
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
 	out := captureOutput(func() {
-		if err := printOutResponse(&response, c.info); err != nil {
+		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
@@ -195,11 +197,11 @@ func TestVisualization(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	if err := visualize(responsejson, false); err != nil {
+	if err := client.Visualize(responsejson, false); err != nil {
 		t.Errorf("Visualization Failure: %v", err)
 	}
 	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
-	if err := openBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
+	if err := client.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
 		t.Errorf("Open want graph failure: %v", err)
 	}
 }
