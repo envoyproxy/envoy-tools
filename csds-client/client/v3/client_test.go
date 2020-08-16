@@ -2,16 +2,9 @@
 package client
 
 import (
-	"bytes"
-	"encoding/json"
 	"envoy-tools/csds-client/client"
-	"fmt"
-	"io"
 	"io/ioutil"
-	"os"
 	"path/filepath"
-	"reflect"
-	"sync"
 	"testing"
 
 	csdspb_v3 "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
@@ -38,7 +31,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 
-	if !shouldEqualJSON(t, string(get), want) {
+	if !client.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
@@ -63,7 +56,7 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if !shouldEqualJSON(t, string(get), want) {
+	if !client.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
@@ -88,38 +81,9 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if !shouldEqualJSON(t, string(get), want) {
+	if !client.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
-}
-
-// captureOutput captures the stdout for testing.
-func captureOutput(f func()) string {
-	reader, writer, err := os.Pipe()
-	if err != nil {
-		panic(err)
-	}
-	stdout := os.Stdout
-	stderr := os.Stderr
-	defer func() {
-		os.Stdout = stdout
-		os.Stderr = stderr
-	}()
-	os.Stdout = writer
-	os.Stderr = writer
-	out := make(chan string)
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
-	go func() {
-		var buf bytes.Buffer
-		wg.Done()
-		io.Copy(&buf, reader)
-		out <- buf.String()
-	}()
-	wg.Wait()
-	f()
-	writer.Close()
-	return <-out
 }
 
 // TestParseResponseWithoutNodeId tests post processing response without node_id.
@@ -138,7 +102,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := captureOutput(func() {
+	out := client.CaptureOutput(func() {
 		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -166,7 +130,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := captureOutput(func() {
+	out := client.CaptureOutput(func() {
 		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -181,7 +145,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Write config to file failure: %v", err)
 	}
-	ok, err := equalJSONBytes(outputjson, responsejson)
+	ok, err := client.EqualJSONBytes(outputjson, responsejson)
 	if err != nil {
 		t.Errorf("failed to parse json")
 	}
@@ -204,33 +168,4 @@ func TestVisualization(t *testing.T) {
 	if err := client.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
 		t.Errorf("Open want graph failure: %v", err)
 	}
-}
-
-func shouldEqualJSON(t *testing.T, s1, s2 string) bool {
-	t.Helper()
-
-	verdict, err := equalJSONBytes([]byte(s1), []byte(s1))
-	if err != nil {
-		t.Errorf("failed to check since: %w", err)
-		return false
-	}
-
-	return verdict
-}
-
-func equalJSONBytes(s1, s2 []byte) (bool, error) {
-	var o1 interface{}
-	var o2 interface{}
-
-	var err error
-	err = json.Unmarshal(s1, &o1)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal s1: %w", err)
-	}
-	err = json.Unmarshal(s2, &o2)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal s2: %w", err)
-	}
-
-	return reflect.DeepEqual(o1, o2), nil
 }
