@@ -1,0 +1,42 @@
+{
+  "config": [
+    {
+      "node": {
+        "id": "test_nodeid",
+        "metadata": {
+          "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER": "fake_project_number",
+          "TRAFFICDIRECTOR_NETWORK_NAME": "fake_network_name",
+          "XDS_STREAM_TYPE": "test_stream_type1"
+        }
+      },
+      "xdsConfig": [
+        {
+          "status": "STALE",
+          "routeConfig": {
+            "dynamicRouteConfigs": [
+              {
+                "versionInfo": "fake_route_version1"
+              },
+              {
+                "versionInfo": "fake_route_version2"
+              }
+            ]
+          }
+        },
+        {
+          "status": "STALE",
+          "clusterConfig": {
+            "dynamicActiveClusters": [
+              {
+                "versionInfo": "fake_cluster_version1"
+              },
+              {
+                "versionInfo": "fake_cluster_version2"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
