@@ -13,8 +13,13 @@ import (
 	"github.com/awalterschulze/gographviz"
 	"github.com/emirpasic/gods/sets/treeset"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_extensions_filters_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
+	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -52,17 +57,32 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 	case "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager":
 		httpConnectionManager := envoy_config_filter_network_http_connection_manager_v2.HttpConnectionManager{}
 		return httpConnectionManager.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager":
+		httpConnectionManager := envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{}
+		return httpConnectionManager.ProtoReflect().Type(), nil
 	case "type.googleapis.com/envoy.api.v2.Cluster":
 		cluster := envoy_api_v2.Cluster{}
+		return cluster.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.config.cluster.v3.Cluster":
+		cluster := envoy_config_cluster_v3.Cluster{}
 		return cluster.ProtoReflect().Type(), nil
 	case "type.googleapis.com/envoy.api.v2.Listener":
 		listener := envoy_api_v2.Listener{}
 		return listener.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.config.listener.v3.Listener":
+		listener := envoy_config_listener_v3.Listener{}
+		return listener.ProtoReflect().Type(), nil
 	case "type.googleapis.com/envoy.config.filter.http.router.v2.Router":
 		router := envoy_config_filter_http_router_v2.Router{}
 		return router.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router":
+		router := envoy_extensions_filters_http_router_v3.Router{}
+		return router.ProtoReflect().Type(), nil
 	case "type.googleapis.com/envoy.api.v2.RouteConfiguration":
 		routeConfiguration := envoy_api_v2.RouteConfiguration{}
+		return routeConfiguration.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.config.route.v3.RouteConfiguration":
+		routeConfiguration := envoy_config_route_v3.RouteConfiguration{}
 		return routeConfiguration.ProtoReflect().Type(), nil
 	default:
 		return nil, protoregistry.NotFound
