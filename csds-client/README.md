@@ -13,7 +13,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
    ```bash
    csds-client \
      -service_uri <uri> \
-     -cloud_platform gcp \
+     -platform gcp \
      -authn_mode auto \
      -api_version 2 \
      -request_file <path to csds request yaml file>
@@ -22,7 +22,7 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
    ```bash
    csds-client \
      -service_uri <uri> \
-     -cloud_platform gcp \
+     -platform gcp \
      -authn_mode jwt \
      -api_version 2 \
      -request_file <path to csds request yaml file> \
