@@ -7,6 +7,7 @@ import (
 
 	"envoy-tools/csds-client/client"
 	client_v2 "envoy-tools/csds-client/client/v2"
+	client_v3 "envoy-tools/csds-client/client/v3"
 )
 
 // flag vars
@@ -66,6 +67,8 @@ func main() {
 	var err error
 	if apiVersion == 2 {
 		c, err = client_v2.New(clientOpts)
+	} else if apiVersion == 3 {
+		c, err = client_v3.New(clientOpts)
 	} else {
 		log.Fatalf("Unsupported xDS API version: %v", apiVersion)
 	}
