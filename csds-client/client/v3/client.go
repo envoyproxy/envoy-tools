@@ -228,6 +228,8 @@ func parseConfigStatus(xdsConfig []*csdspb_v3.PerXdsConfig) []string {
 			xds = "RDS"
 		} else if perXdsConfig.GetScopedRouteConfig() != nil {
 			xds = "SRDS"
+		} else if perXdsConfig.GetEndpointConfig() != nil {
+			xds = "EDS"
 		}
 		if status != "" && xds != "" {
 			configStatus = append(configStatus, xds+"   "+status)
