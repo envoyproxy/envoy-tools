@@ -40,10 +40,11 @@ func CaptureOutput(f func()) string {
 	return <-out
 }
 
+// ShouldEqualJSON tests if json string s1 and s2 are equal
 func ShouldEqualJSON(t *testing.T, s1, s2 string) bool {
 	t.Helper()
 
-	verdict, err := EqualJSONBytes([]byte(s1), []byte(s1))
+	verdict, err := EqualJSONBytes([]byte(s1), []byte(s2))
 	if err != nil {
 		t.Errorf("failed to check since: %w", err)
 		return false
@@ -52,6 +53,7 @@ func ShouldEqualJSON(t *testing.T, s1, s2 string) bool {
 	return verdict
 }
 
+// EqualJSONBytes compares json bytes s1 and s2
 func EqualJSONBytes(s1, s2 []byte) (bool, error) {
 	var o1 interface{}
 	var o2 interface{}

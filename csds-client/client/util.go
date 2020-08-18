@@ -14,6 +14,7 @@ import (
 	"github.com/emirpasic/gods/sets/treeset"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_filter_http_router_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/router/v2"
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -84,6 +85,9 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 	case "type.googleapis.com/envoy.config.route.v3.RouteConfiguration":
 		routeConfiguration := envoy_config_route_v3.RouteConfiguration{}
 		return routeConfiguration.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment":
+		clusterLoadAssignment := envoy_config_endpoint_v3.ClusterLoadAssignment{}
+		return clusterLoadAssignment.ProtoReflect().Type(), nil
 	default:
 		return nil, protoregistry.NotFound
 	}
@@ -145,8 +149,10 @@ func ParseXdsRelationship(js []byte) (GraphData, error) {
 	lds := make(map[string]string)
 	rds := make(map[string]string)
 	cds := make(map[string]string)
+	eds := make(map[string]string)
 	ldsToRds := make(map[string]*treeset.Set)
 	rdsToCds := make(map[string]*treeset.Set)
+	cdsToEds := make(map[string]*treeset.Set)
 
 	for _, config := range data["config"].([]interface{}) {
 		configMap := config.(map[string]interface{})
@@ -208,14 +214,30 @@ func ParseXdsRelationship(js []byte) (GraphData, error) {
 							cds[name] = id
 						}
 					}
+				case "endpointConfig":
+					for _, endpoints := range value.(map[string]interface{}) {
+						for idx, endpoint := range endpoints.([]interface{}) {
+							id := "EDS" + strconv.Itoa(idx)
+							eds[id] = id
+
+							clusterName := endpoint.(map[string]interface{})["endpointConfig"].(map[string]interface{})["clusterName"].(string)
+							if cdsSet, ok := cdsToEds[clusterName]; ok {
+								cdsSet.Add(id)
+							} else {
+								cdsSet = treeset.NewWithStringComparator()
+								cdsSet.Add(id)
+								cdsToEds[clusterName] = cdsSet
+							}
+						}
+					}
 				}
 			}
 		}
 	}
 
 	gData := GraphData{
-		nodes:     []map[string]string{lds, rds, cds},
-		relations: []map[string]*treeset.Set{ldsToRds, rdsToCds},
+		nodes:     []map[string]string{lds, rds, cds, eds},
+		relations: []map[string]*treeset.Set{ldsToRds, rdsToCds, cdsToEds},
 	}
 
 	return gData, nil
@@ -237,7 +259,7 @@ func GenerateGraph(data GraphData) (string, error) {
 	}
 
 	// different colors for xDS nodes
-	colors := map[string]string{"LDS": "#4285F4", "RDS": "#FBBC04", "CDS": "#34A853"}
+	colors := map[string]string{"LDS": "#4285F4", "RDS": "#EA4335", "CDS": "#FBBC04", "EDS": "#34A853"}
 
 	for _, xDS := range data.nodes {
 		for name, node := range xDS {

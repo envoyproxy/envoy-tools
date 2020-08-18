@@ -117,6 +117,18 @@
               }
             ]
           }
+        },
+        {
+          "status": "STALE",
+          "endpointConfig": {
+            "staticEndpointConfigs": [
+              {
+                "endpointConfig": {
+                  "clusterName": "test_cds_0"
+                }
+              }
+            ]
+          }
         }
       ]
     }
