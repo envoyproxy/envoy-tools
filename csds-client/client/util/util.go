@@ -1,8 +1,9 @@
-package client
+package util
 
 import (
 	"bytes"
 	"encoding/json"
+	"envoy-tools/csds-client/client"
 	"fmt"
 	"io"
 	"os"
@@ -301,7 +302,7 @@ func OpenBrowser(url string) error {
 }
 
 // PrintDetailedConfig prints out the detailed xDS config and calls visualize() if it is enabled
-func PrintDetailedConfig(response proto.Message, opts ClientOptions) error {
+func PrintDetailedConfig(response proto.Message, opts client.ClientOptions) error {
 	// parse response to json
 	// format the json and resolve google.protobuf.Any types
 	m := protojson.MarshalOptions{Multiline: true, Indent: "  ", Resolver: &TypeResolver{}}

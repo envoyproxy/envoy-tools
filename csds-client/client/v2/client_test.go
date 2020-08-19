@@ -3,6 +3,7 @@ package client
 
 import (
 	"envoy-tools/csds-client/client"
+	clientUtil "envoy-tools/csds-client/client/util"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -31,7 +32,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 
-	if !client.ShouldEqualJSON(t, string(get), want) {
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
@@ -56,7 +57,7 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if !client.ShouldEqualJSON(t, string(get), want) {
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
@@ -81,7 +82,7 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if !client.ShouldEqualJSON(t, string(get), want) {
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
@@ -102,7 +103,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := client.CaptureOutput(func() {
+	out := clientUtil.CaptureOutput(func() {
 		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -130,7 +131,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := client.CaptureOutput(func() {
+	out := clientUtil.CaptureOutput(func() {
 		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -145,7 +146,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Write config to file failure: %v", err)
 	}
-	ok, err := client.EqualJSONBytes(outputjson, responsejson)
+	ok, err := clientUtil.EqualJSONBytes(outputjson, responsejson)
 	if err != nil {
 		t.Errorf("failed to parse json")
 	}
@@ -161,11 +162,11 @@ func TestVisualization(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	if err := client.Visualize(responsejson, false); err != nil {
+	if err := clientUtil.Visualize(responsejson, false); err != nil {
 		t.Errorf("Visualization Failure: %v", err)
 	}
 	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
-	if err := client.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
+	if err := clientUtil.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
 		t.Errorf("Open want graph failure: %v", err)
 	}
 }

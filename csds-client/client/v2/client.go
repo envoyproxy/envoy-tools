@@ -1,4 +1,4 @@
-// Package client/v2 implements the client interface for v2 transport api version in specific
+// Package client/v2 implements the client interface for v2 transport api version
 package client
 
 import (
@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"envoy-tools/csds-client/client"
+	clientUtil "envoy-tools/csds-client/client/util"
 	"errors"
 	"fmt"
 	"io"
@@ -25,7 +26,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// ClientV2 implements the interface Client
+// ClientV2 implements the Client interface
 type ClientV2 struct {
 	clientConn *grpc.ClientConn
 	csdsClient csdspb_v2.ClientStatusDiscoveryServiceClient
@@ -194,7 +195,7 @@ func (c *ClientV2) Run() error {
 	}
 }
 
-// doRequest sends request and print out the parsed response
+// doRequest sends request and prints out the parsed response
 func (c *ClientV2) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
 	req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
@@ -286,7 +287,7 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.Clie
 	}
 
 	if hasXdsConfig {
-		if err := client.PrintDetailedConfig(response, opts); err != nil {
+		if err := clientUtil.PrintDetailedConfig(response, opts); err != nil {
 			return err
 		}
 	}
@@ -334,7 +335,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMa
 		var js []byte
 		var err error
 		// json input
-		if client.IsJson(yamlStr) {
+		if clientUtil.IsJson(yamlStr) {
 			js = []byte(yamlStr)
 		} else {
 			// parse the yaml input into json
