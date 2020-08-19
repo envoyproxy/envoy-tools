@@ -8,9 +8,12 @@ import (
 	"envoy-tools/csds-client/client"
 	"errors"
 	"fmt"
+	"github.com/ghodss/yaml"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 
@@ -390,4 +393,51 @@ func ConnWithAutoGcp(opts client.ClientOptions) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 	return clientConn, nil
+}
+
+// ParseYamlFileToMap parses yaml file to map
+func ParseYamlFileToMap(path string) (map[string]interface{}, error) {
+	// parse yaml to json
+	filename, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	yamlFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	js, err := yaml.YAMLToJSON(yamlFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// parse the json array to a map to iterate it
+	var data map[string]interface{}
+	if err = json.Unmarshal(js, &data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// ParseYamlStrToMap parses yaml string to map
+func ParseYamlStrToMap(yamlStr string) (map[string]interface{}, error) {
+	var js []byte
+	var err error
+	// json input
+	if IsJson(yamlStr) {
+		js = []byte(yamlStr)
+	} else {
+		// parse the yaml input into json
+		js, err = yaml.YAMLToJSON([]byte(yamlStr))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// parse the json array to a map to iterate it
+	var data map[string]interface{}
+	if err = json.Unmarshal(js, &data); err != nil {
+		return nil, err
+	}
+	return data, nil
 }

@@ -9,14 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
-	"path/filepath"
 	"strings"
 	"time"
 
 	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
 	envoy_type_matcher_v2 "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-	"github.com/ghodss/yaml"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -260,26 +257,11 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.Clie
 	return nil
 }
 
-// parseYaml is a helper method for parsing csds request yaml to nodematchers
+// parseYaml is a helper method for parsing csds request yaml to NodeMatchers
 func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMatcher) error {
 	if path != "" {
-		// parse yaml to json
-		filename, err := filepath.Abs(path)
+		data, err := clientUtil.ParseYamlFileToMap(path)
 		if err != nil {
-			return err
-		}
-		yamlFile, err := ioutil.ReadFile(filename)
-		if err != nil {
-			return err
-		}
-		js, err := yaml.YAMLToJSON(yamlFile)
-		if err != nil {
-			return err
-		}
-
-		// parse the json array to a map to iterate it
-		var data map[string]interface{}
-		if err = json.Unmarshal(js, &data); err != nil {
 			return err
 		}
 
@@ -298,22 +280,8 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMa
 		}
 	}
 	if yamlStr != "" {
-		var js []byte
-		var err error
-		// json input
-		if clientUtil.IsJson(yamlStr) {
-			js = []byte(yamlStr)
-		} else {
-			// parse the yaml input into json
-			js, err = yaml.YAMLToJSON([]byte(yamlStr))
-			if err != nil {
-				return err
-			}
-		}
-
-		// parse the json array to a map to iterate it
-		var data map[string]interface{}
-		if err = json.Unmarshal(js, &data); err != nil {
+		data, err := clientUtil.ParseYamlStrToMap(yamlStr)
+		if err != nil {
 			return err
 		}
 
