@@ -2,8 +2,11 @@ package util
 
 import (
 	"bytes"
+	"context"
+	"crypto/x509"
 	"encoding/json"
 	"envoy-tools/csds-client/client"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,6 +25,9 @@ import (
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -336,4 +342,52 @@ func PrintDetailedConfig(response proto.Message, opts client.ClientOptions) erro
 		}
 	}
 	return nil
+}
+
+// ConnWithJwt connects to uri with jwt authentication
+func ConnWithJwt(opts client.ClientOptions) (*grpc.ClientConn, error) {
+	if opts.Jwt == "" {
+		return nil, errors.New("missing jwt file")
+	}
+	switch opts.Platform {
+	case "gcp":
+		scope := "https://www.googleapis.com/auth/cloud-platform"
+		pool, err := x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
+		creds := credentials.NewClientTLSFromCert(pool, "")
+		perRPC, err := oauth.NewServiceAccountFromFile(opts.Jwt, scope)
+		if err != nil {
+			return nil, err
+		}
+
+		clientConn, err := grpc.Dial(opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+		if err != nil {
+			return nil, err
+		}
+		return clientConn, nil
+	default:
+		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", opts.Platform)
+	}
+}
+
+// ConnWithAutoGcp connects to uri on gcp with auto authentication
+func ConnWithAutoGcp(opts client.ClientOptions) (*grpc.ClientConn, error) {
+	scope := "https://www.googleapis.com/auth/cloud-platform"
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
+	}
+	creds := credentials.NewClientTLSFromCert(pool, "")
+	perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
+	if err != nil {
+		return nil, err
+	}
+
+	clientConn, err := grpc.Dial(opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+	if err != nil {
+		return nil, err
+	}
+	return clientConn, nil
 }

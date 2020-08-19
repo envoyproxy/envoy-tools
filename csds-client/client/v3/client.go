@@ -3,7 +3,6 @@ package client
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/json"
 	"envoy-tools/csds-client/client"
 	clientUtil "envoy-tools/csds-client/client/util"
@@ -19,8 +18,6 @@ import (
 	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/ghodss/yaml"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -35,6 +32,10 @@ type ClientV3 struct {
 	metadata    metadata.MD
 	opts        client.ClientOptions
 }
+
+// field keys in NodeMatcher
+const gcpProjectNumberKey string = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
+const gcpNetworkNameKey string = "TRAFFICDIRECTOR_NETWORK_NAME"
 
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
 // if -request_file and -request_yaml are both set, the values in this yaml string will override and
@@ -51,10 +52,10 @@ func (c *ClientV3) parseNodeMatcher() error {
 
 	c.nodeMatcher = nodematchers
 
-	// check if required fields exist in nodematcher
+	// check if required fields exist in NodeMatcher
 	switch c.opts.Platform {
 	case "gcp":
-		keys := []string{"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER", "TRAFFICDIRECTOR_NETWORK_NAME"}
+		keys := []string{gcpProjectNumberKey, gcpNetworkNameKey}
 		for _, key := range keys {
 			if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
 				return fmt.Errorf("missing field %v in NodeMatcher", key)
@@ -69,58 +70,23 @@ func (c *ClientV3) parseNodeMatcher() error {
 
 // connWithAuth connects to uri with authentication
 func (c *ClientV3) connWithAuth() error {
-	var scope string
+	var err error
 	switch c.opts.AuthnMode {
 	case "jwt":
-		if c.opts.Jwt == "" {
-			return errors.New("missing jwt file")
+		c.clientConn, err = clientUtil.ConnWithJwt(c.opts)
+		if err != nil {
+			return err
 		}
-		switch c.opts.Platform {
-		case "gcp":
-			scope = "https://www.googleapis.com/auth/cloud-platform"
-			pool, err := x509.SystemCertPool()
-			if err != nil {
-				return err
-			}
-			creds := credentials.NewClientTLSFromCert(pool, "")
-			perRPC, err := oauth.NewServiceAccountFromFile(c.opts.Jwt, scope)
-			if err != nil {
-				return err
-			}
-
-			c.clientConn, err = grpc.Dial(c.opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
-			if err != nil {
-				return err
-			}
-			return nil
-		default:
-			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
-		}
+		return nil
 	case "auto":
 		switch c.opts.Platform {
 		case "gcp":
-			scope = "https://www.googleapis.com/auth/cloud-platform"
-			pool, err := x509.SystemCertPool()
-			if err != nil {
-				return err
-			}
-			creds := credentials.NewClientTLSFromCert(pool, "")
-			perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
-			if err != nil {
-				return err
-			}
-
 			// parse GCP project number as header for authentication
-			var key string
-			switch c.opts.Uri {
-			case "trafficdirector.googleapis.com:443":
-				key = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
-			}
-			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); projectNum != "" {
+			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey); projectNum != "" {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.clientConn, err = grpc.Dial(c.opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+			c.clientConn, err = clientUtil.ConnWithAutoGcp(c.opts)
 			if err != nil {
 				return err
 			}
