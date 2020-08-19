@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"envoy-tools/csds-client/client"
-	clientUtil "envoy-tools/csds-client/client/util"
+	clientutil "envoy-tools/csds-client/client/util"
 	"errors"
 	"fmt"
 	"io"
@@ -30,9 +30,11 @@ type ClientV2 struct {
 	opts        client.ClientOptions
 }
 
-// field keys in NodeMatcher
-const gcpProjectNumberKey string = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
-const gcpNetworkNameKey string = "TRAFFICDIRECTOR_NETWORK_NAME"
+// Field keys that must be presented in the NodeMatcher
+const (
+	gcpProjectNumberKey string = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
+	gcpNetworkNameKey   string = "TRAFFICDIRECTOR_NETWORK_NAME"
+)
 
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
 // if -request_file and -request_yaml are both set, the values in this yaml string will override and
@@ -70,7 +72,7 @@ func (c *ClientV2) connWithAuth() error {
 	var err error
 	switch c.opts.AuthnMode {
 	case "jwt":
-		c.clientConn, err = clientUtil.ConnWithJwt(c.opts)
+		c.clientConn, err = clientutil.ConnWithJwt(c.opts)
 		if err != nil {
 			return err
 		}
@@ -83,7 +85,7 @@ func (c *ClientV2) connWithAuth() error {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.clientConn, err = clientUtil.ConnWithAutoGcp(c.opts)
+			c.clientConn, err = clientutil.ConnWithAutoGcp(c.opts)
 			if err != nil {
 				return err
 			}
@@ -250,7 +252,7 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.Clie
 	}
 
 	if hasXdsConfig {
-		if err := clientUtil.PrintDetailedConfig(response, opts); err != nil {
+		if err := clientutil.PrintDetailedConfig(response, opts); err != nil {
 			return err
 		}
 	}
@@ -260,7 +262,7 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.Clie
 // parseYaml is a helper method for parsing csds request yaml to NodeMatchers
 func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMatcher) error {
 	if path != "" {
-		data, err := clientUtil.ParseYamlFileToMap(path)
+		data, err := clientutil.ParseYamlFileToMap(path)
 		if err != nil {
 			return err
 		}
@@ -280,7 +282,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMa
 		}
 	}
 	if yamlStr != "" {
-		data, err := clientUtil.ParseYamlStrToMap(yamlStr)
+		data, err := clientutil.ParseYamlStrToMap(yamlStr)
 		if err != nil {
 			return err
 		}

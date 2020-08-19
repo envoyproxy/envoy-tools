@@ -23,16 +23,18 @@ var monitorInterval time.Duration
 var visualization bool
 
 // const default values for flag vars
-const uriDefault string = "trafficdirector.googleapis.com:443"
-const platformDefault string = "gcp"
-const authnModeDefault string = "auto"
-const apiVersionDefault int = 2
-const requestFileDefault string = ""
-const requestYamlDefault string = ""
-const jwtDefault string = ""
-const configFileDefault string = ""
-const monitorIntervalDefault time.Duration = 0
-const visualizationDefault bool = false
+const (
+	uriDefault             string        = "trafficdirector.googleapis.com:443"
+	platformDefault        string        = "gcp"
+	authnModeDefault       string        = "auto"
+	apiVersionDefault      int           = 2
+	requestFileDefault     string        = ""
+	requestYamlDefault     string        = ""
+	jwtDefault             string        = ""
+	configFileDefault      string        = ""
+	monitorIntervalDefault time.Duration = 0
+	visualizationDefault   bool          = false
+)
 
 // init binds flags with variables
 func init() {
