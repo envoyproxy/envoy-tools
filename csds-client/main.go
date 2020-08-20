@@ -1,13 +1,12 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"time"
-
 	"envoy-tools/csds-client/client"
 	client_v2 "envoy-tools/csds-client/client/v2"
 	client_v3 "envoy-tools/csds-client/client/v3"
+	"flag"
+	"log"
+	"time"
 )
 
 // flag vars

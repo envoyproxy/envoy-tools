@@ -72,11 +72,17 @@ func (c *ClientV2) connWithAuth() error {
 	var err error
 	switch c.opts.AuthnMode {
 	case "jwt":
-		c.clientConn, err = clientutil.ConnWithJwt(c.opts)
-		if err != nil {
-			return err
+		switch c.opts.Platform {
+		case "gcp":
+			c.clientConn, err = clientutil.ConnToGCPWithJwt(c.opts.Jwt, c.opts.Uri)
+			if err != nil {
+				return err
+			}
+			return nil
+		default:
+			return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 		}
-		return nil
+
 	case "auto":
 		switch c.opts.Platform {
 		case "gcp":
@@ -85,7 +91,7 @@ func (c *ClientV2) connWithAuth() error {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 
-			c.clientConn, err = clientutil.ConnWithAutoGcp(c.opts)
+			c.clientConn, err = clientutil.ConnToGCPWithAuto(c.opts.Uri)
 			if err != nil {
 				return err
 			}

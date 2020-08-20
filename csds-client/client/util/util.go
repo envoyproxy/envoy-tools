@@ -347,36 +347,31 @@ func PrintDetailedConfig(response proto.Message, opts client.ClientOptions) erro
 	return nil
 }
 
-// ConnWithJwt connects to uri with jwt authentication
-func ConnWithJwt(opts client.ClientOptions) (*grpc.ClientConn, error) {
-	if opts.Jwt == "" {
+// ConnToGCPWithJwt connects to uri on gcp with jwt authentication
+func ConnToGCPWithJwt(jwt string, uri string) (*grpc.ClientConn, error) {
+	if jwt == "" {
 		return nil, errors.New("missing jwt file")
 	}
-	switch opts.Platform {
-	case "gcp":
-		scope := "https://www.googleapis.com/auth/cloud-platform"
-		pool, err := x509.SystemCertPool()
-		if err != nil {
-			return nil, err
-		}
-		creds := credentials.NewClientTLSFromCert(pool, "")
-		perRPC, err := oauth.NewServiceAccountFromFile(opts.Jwt, scope)
-		if err != nil {
-			return nil, err
-		}
-
-		clientConn, err := grpc.Dial(opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
-		if err != nil {
-			return nil, err
-		}
-		return clientConn, nil
-	default:
-		return nil, fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", opts.Platform)
+	scope := "https://www.googleapis.com/auth/cloud-platform"
+	pool, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, err
 	}
+	creds := credentials.NewClientTLSFromCert(pool, "")
+	perRPC, err := oauth.NewServiceAccountFromFile(jwt, scope)
+	if err != nil {
+		return nil, err
+	}
+
+	clientConn, err := grpc.Dial(uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+	if err != nil {
+		return nil, err
+	}
+	return clientConn, nil
 }
 
-// ConnWithAutoGcp connects to uri on gcp with auto authentication
-func ConnWithAutoGcp(opts client.ClientOptions) (*grpc.ClientConn, error) {
+// ConnToGCPWithAuto connects to uri on gcp with auto authentication
+func ConnToGCPWithAuto(uri string) (*grpc.ClientConn, error) {
 	scope := "https://www.googleapis.com/auth/cloud-platform"
 	pool, err := x509.SystemCertPool()
 	if err != nil {
@@ -388,7 +383,7 @@ func ConnWithAutoGcp(opts client.ClientOptions) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	clientConn, err := grpc.Dial(opts.Uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
+	clientConn, err := grpc.Dial(uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 	if err != nil {
 		return nil, err
 	}
