@@ -66,11 +66,12 @@ func main() {
 
 	var c client.Client
 	var err error
-	if apiVersion == 2 {
+	switch apiVersion {
+	case 2:
 		c, err = client_v2.New(clientOpts)
-	} else if apiVersion == 3 {
+	case 3:
 		c, err = client_v3.New(clientOpts)
-	} else {
+	default:
 		log.Fatalf("Unsupported xDS API version: %v", apiVersion)
 	}
 
