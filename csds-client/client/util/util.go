@@ -31,7 +31,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -372,28 +371,24 @@ func ConnToGCPWithJwt(jwt string, uri string) (*grpc.ClientConn, error) {
 }
 
 // ConnToGCPWithAuto connects to uri on gcp with auto authentication
-func ConnToGCPWithAuto(uri string, projectNum string) (*grpc.ClientConn, metadata.MD, error) {
+func ConnToGCPWithAuto(uri string) (*grpc.ClientConn, error) {
 	scope := "https://www.googleapis.com/auth/cloud-platform"
 	pool, err := x509.SystemCertPool()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	creds := credentials.NewClientTLSFromCert(pool, "")
 	perRPC, err := oauth.NewApplicationDefault(context.Background(), scope) // Application Default Credentials (ADC)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	clientConn, err := grpc.Dial(uri, grpc.WithTransportCredentials(creds), grpc.WithPerRPCCredentials(perRPC))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	if projectNum != "" {
-		md := metadata.Pairs("x-goog-user-project", projectNum)
-		return clientConn, md, nil
-	}
-	return clientConn, nil, nil
+	return clientConn, nil
 }
 
 // ParseYamlFileToMap parses yaml file to map
