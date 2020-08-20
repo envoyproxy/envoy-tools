@@ -87,8 +87,7 @@ func (c *ClientV3) connWithAuth() error {
 		switch c.opts.Platform {
 		case "gcp":
 			// parse GCP project number as header for authentication
-			projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey)
-			if projectNum != "" {
+			if projectNum := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey); projectNum != "" {
 				c.metadata = metadata.Pairs("x-goog-user-project", projectNum)
 			}
 			c.clientConn, err = clientutil.ConnToGCPWithAuto(c.opts.Uri)
