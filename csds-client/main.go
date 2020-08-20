@@ -13,7 +13,7 @@ import (
 var uri string
 var platform string
 var authnMode string
-var apiVersion int
+var apiVersion string
 var requestFile string
 var requestYaml string
 var jwt string
@@ -26,7 +26,7 @@ const (
 	uriDefault             string        = "trafficdirector.googleapis.com:443"
 	platformDefault        string        = "gcp"
 	authnModeDefault       string        = "auto"
-	apiVersionDefault      int           = 2
+	apiVersionDefault      string        = "v2"
 	requestFileDefault     string        = ""
 	requestYamlDefault     string        = ""
 	jwtDefault             string        = ""
@@ -40,7 +40,7 @@ func init() {
 	flag.StringVar(&uri, "service_uri", uriDefault, "the uri of the service to connect to")
 	flag.StringVar(&platform, "platform", platformDefault, "the platform (e.g. gcp, aws,  ...)")
 	flag.StringVar(&authnMode, "authn_mode", authnModeDefault, "the method to use for authentication (e.g. auto, jwt, ...)")
-	flag.IntVar(&apiVersion, "api_version", apiVersionDefault, "which xds api major version to use (e.g. 2, 3 ...)")
+	flag.StringVar(&apiVersion, "api_version", apiVersionDefault, "which xds api major version to use (e.g. v2, v3 ...)")
 	flag.StringVar(&requestFile, "request_file", requestFileDefault, "yaml file that defines the csds request")
 	flag.StringVar(&requestYaml, "request_yaml", requestYamlDefault, "yaml string that defines the csds request")
 	flag.StringVar(&jwt, "jwt_file", jwtDefault, "path of the -jwt_file")
@@ -67,9 +67,9 @@ func main() {
 	var c client.Client
 	var err error
 	switch apiVersion {
-	case 2:
+	case "v2":
 		c, err = client_v2.New(clientOpts)
-	case 3:
+	case "v3":
 		c, err = client_v3.New(clientOpts)
 	default:
 		log.Fatalf("Unsupported xDS API version: %v", apiVersion)
