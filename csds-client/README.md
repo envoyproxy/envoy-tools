@@ -60,6 +60,7 @@ Common options are exposed/controlled via command line flags, while control plan
 * ***-visualization***: option to visualize the relationship between xDS resources
    * If this flag is not specified, the visualization mode is off by default
    * The client will generate a `.dot` file and save it as `config_graph.dot`, then it will open the browser window automatically to show the graph parsed by dot.
+   * If the browser fails to open due to os version issue, you can copy the content in `config_graph.dot`, and then paste it in the edit box on the left of [Graphviz Online](https://dreampuf.github.io/GraphvizOnline/) or any other tools for [Graphviz](https://graphviz.org/) to show the graph of the dot file.
    * Each xDS node shown in the graph is labelled by index (e.g. LDS0, RDS0, RDS1,...) to make the graph more clear. The real name of xDS resource in config will show when the user hovers the mouse over each node.
    * If **the visualization mode** and **the monitor mode** are enabled together, the client will only save graph dot data for the latest response without opening the browser to avoid frequent pop-ups of the browser due to short monitor interval.
 

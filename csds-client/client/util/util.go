@@ -294,6 +294,8 @@ func GenerateGraph(data GraphData) (string, error) {
 }
 
 // OpenBrowser opens url in browser based on platform
+// TODO: the url cannot be passed correctly on some platforms because of \" and ",
+//  which need to be solve in the future.
 func OpenBrowser(url string) error {
 	var err error
 	switch runtime.GOOS {
