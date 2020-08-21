@@ -5,10 +5,11 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
 <br/>Before you start, you'll need [Go](https://golang.org/) installed.
 
 # Building
-* Run `make` to install dependencies and build a binary under `GOPATH`.<br>
+* Run `make` to install dependencies, build a binary under `GOPATH`, and run tests.<br>
   In this way, you'll need to export `GOPATH` as an environment variable when you install Go so that you can run the client with `csds-client <flag>` globally.
 * Or, run `make init` to install dependencies and run `make build` to build a binary under the current path.<br>
   In this way, you can run the client with `./csds-client <flag>`.
+* Run `make help` for other options.
 
 # Running
 * run with `csds-client <flag>`, e.g. <br/><br/>
