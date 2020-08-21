@@ -182,9 +182,11 @@ func ParseXdsRelationship(js []byte) (GraphData, error) {
 							rdsSet := treeset.NewWithStringComparator()
 
 							for _, filterchain := range detail["filterChains"].([]interface{}) {
-								for _, filter := range filterchain.(map[string]interface{})["filters"].([]interface{}) {
-									rdsName := filter.(map[string]interface{})["typedConfig"].(map[string]interface{})["rds"].(map[string]interface{})["routeConfigName"].(string)
-									rdsSet.Add(rdsName)
+								if filters, ok := filterchain.(map[string]interface{})["filters"]; ok {
+									for _, filter := range filters.([]interface{}) {
+										rdsName := filter.(map[string]interface{})["typedConfig"].(map[string]interface{})["rds"].(map[string]interface{})["routeConfigName"].(string)
+										rdsSet.Add(rdsName)
+									}
 								}
 							}
 							ldsToRds[name] = rdsSet
@@ -273,7 +275,7 @@ func GenerateGraph(data GraphData) (string, error) {
 
 	for _, xDS := range data.nodes {
 		for name, node := range xDS {
-			if err := graph.AddNode("G", `\"`+name+`\"`, map[string]string{"label": node, "fontcolor": "white", "fontname": "Roboto", "shape": "box", "style": `\""filled,rounded"\"`, "color": `\"` + colors[node[0:3]] + `\"`, "fillcolor": `\"` + colors[node[0:3]] + `\"`}); err != nil {
+			if err := graph.AddNode("G", `"`+name+`"`, map[string]string{"label": node, "fontcolor": "white", "fontname": "Roboto", "shape": "box", "style": `"filled,rounded"`, "color": `"` + colors[node[0:3]] + `"`, "fillcolor": `"` + colors[node[0:3]] + `"`}); err != nil {
 				return "", err
 			}
 		}
@@ -281,7 +283,7 @@ func GenerateGraph(data GraphData) (string, error) {
 	for _, relations := range data.relations {
 		for src, set := range relations {
 			for _, dst := range set.Values() {
-				if err := graph.AddEdge(`\"`+src+`\"`, `\"`+dst.(string)+`\"`, true, map[string]string{"penwidth": "0.3", "arrowsize": "0.3"}); err != nil {
+				if err := graph.AddEdge(`"`+src+`"`, `"`+dst.(string)+`"`, true, map[string]string{"penwidth": "0.3", "arrowsize": "0.3"}); err != nil {
 					return "", err
 				}
 			}
