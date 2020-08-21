@@ -1,4 +1,4 @@
-.PHONY: all # Install dependencies, build binary.
+.PHONY: all # Install dependencies, build binary under GOPATH, then run tests.
 all: init test install
 
 .PHONY: build # Build binary.

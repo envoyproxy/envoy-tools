@@ -5,7 +5,11 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
 <br/>Before you start, you'll need [Go](https://golang.org/) installed.
 
 # Building
-* Run `make` to install dependencies and build a binary.
+* Run `make` to install dependencies, build a binary under `GOPATH`, and run tests.<br>
+  In this way, you'll need to export `GOPATH` as an environment variable when you install Go so that you can run the client with `csds-client <flag>` globally.
+* Or, run `make init` to install dependencies and run `make build` to build a binary under the current path.<br>
+  In this way, you can run the client with `./csds-client <flag>`.
+* Run `make help` for other options.
 
 # Running
 * run with `csds-client <flag>`, e.g. <br/><br/>
@@ -13,18 +17,18 @@ For now, this initial version of this CSDS client only supports GCP's [Traffic D
    ```bash
    csds-client \
      -service_uri <uri> \
-     -cloud_platform gcp \
+     -platform gcp \
      -authn_mode auto \
-     -api_version 2 \
+     -api_version v2 \
      -request_file <path to csds request yaml file>
   ```
    * jwt authentication mode
    ```bash
    csds-client \
      -service_uri <uri> \
-     -cloud_platform gcp \
+     -platform gcp \
      -authn_mode jwt \
-     -api_version 2 \
+     -api_version v2 \
      -request_file <path to csds request yaml file> \
      -jwt_file <path to jwt key>
   ```
@@ -41,8 +45,8 @@ Common options are exposed/controlled via command line flags, while control plan
   * If this flag is not specified, it will be set to *auto* as default.
   * If it’s set to *auto*, the credentials will be obtained automatically based on different cloud platforms.
   * If it’s set to *jwt*, the credentials will be obtained from the jwt file which is specified by the ***-jwt_file*** flag.
-* ***-api_version***: which xds api major version to use (e.g. 2, 3 ...)
-  * If this flag is not specified, it will be set to *2* as default.
+* ***-api_version***: which xds api major version to use (e.g. v2, v3 ...)
+  * If this flag is not specified, it will be set to *v2* as default.
 * ***-jwt_file***: path of the jwt_file
 * ***-request_file***: yaml file that defines the csds request
   * If this flag is missing, ***-request_yaml*** is required.
@@ -57,6 +61,7 @@ Common options are exposed/controlled via command line flags, while control plan
 * ***-visualization***: option to visualize the relationship between xDS resources
    * If this flag is not specified, the visualization mode is off by default
    * The client will generate a `.dot` file and save it as `config_graph.dot`, then it will open the browser window automatically to show the graph parsed by dot.
+   * If the browser fails to open due to os version issue, you can copy the content in `config_graph.dot`, and then paste it in the edit box on the left of [Graphviz Online](https://dreampuf.github.io/GraphvizOnline/) or any other tools for [Graphviz](https://graphviz.org/) to show the graph of the dot file.
    * Each xDS node shown in the graph is labelled by index (e.g. LDS0, RDS0, RDS1,...) to make the graph more clear. The real name of xDS resource in config will show when the user hovers the mouse over each node.
    * If **the visualization mode** and **the monitor mode** are enabled together, the client will only save graph dot data for the latest response without opening the browser to avoid frequent pop-ups of the browser due to short monitor interval.
 

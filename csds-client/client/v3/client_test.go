@@ -1,20 +1,20 @@
-// Unit Tests for client/v2
+// Unit Tests for client/v3
 package client
 
 import (
 	"envoy-tools/csds-client/client"
-	clientutil "envoy-tools/csds-client/client/util"
+	clientUtil "envoy-tools/csds-client/client/util"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
-	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
+	csdspb_v3 "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
 func TestParseNodeMatcherWithFile(t *testing.T) {
-	c := ClientV2{
+	c := ClientV3{
 		opts: client.ClientOptions{
 			Platform:    "gcp",
 			RequestFile: "./test_request.yaml",
@@ -32,14 +32,14 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
 
-	if !clientutil.ShouldEqualJSON(t, string(get), want) {
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
 // TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.
 func TestParseNodeMatcherWithString(t *testing.T) {
-	c := ClientV2{
+	c := ClientV3{
 		opts: client.ClientOptions{
 			Platform:    "gcp",
 			RequestYaml: "{\"node_matchers\": [{\"node_id\": {\"exact\": \"fake_node_id\"}, \"node_metadatas\": [{\"path\": [{\"key\": \"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}], \"value\": {\"string_match\": {\"exact\": \"fake_project_number\"}}}, {\"path\": [{\"key\": \"TRAFFICDIRECTOR_NETWORK_NAME\"}], \"value\": {\"string_match\": {\"exact\": \"fake_network_name\"}}}]}]}",
@@ -57,14 +57,14 @@ func TestParseNodeMatcherWithString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if !clientutil.ShouldEqualJSON(t, string(get), want) {
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
 // TestParseNodeMatcherWithFileAndString tests parsing -request_file and -request_yaml to nodematcher.
 func TestParseNodeMatcherWithFileAndString(t *testing.T) {
-	c := ClientV2{
+	c := ClientV3{
 		opts: client.ClientOptions{
 			Platform:    "gcp",
 			RequestFile: "./test_request.yaml",
@@ -82,14 +82,14 @@ func TestParseNodeMatcherWithFileAndString(t *testing.T) {
 	if err != nil {
 		t.Errorf("Parse NodeMatcher Error: %v", err)
 	}
-	if !clientutil.ShouldEqualJSON(t, string(get), want) {
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
 }
 
 // TestParseResponseWithoutNodeId tests post processing response without node_id.
 func TestParseResponseWithoutNodeId(t *testing.T) {
-	c := ClientV2{
+	c := ClientV3{
 		opts: client.ClientOptions{
 			Platform: "gcp",
 		},
@@ -99,11 +99,11 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	var response csdspb_v2.ClientStatusResponse
+	var response csdspb_v3.ClientStatusResponse
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := clientutil.CaptureOutput(func() {
+	out := clientUtil.CaptureOutput(func() {
 		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -116,7 +116,7 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 
 // TestParseResponseWithNodeId tests post processing response with node_id
 func TestParseResponseWithNodeId(t *testing.T) {
-	c := ClientV2{
+	c := ClientV3{
 		opts: client.ClientOptions{
 			Platform:   "gcp",
 			ConfigFile: "test_config.json",
@@ -127,11 +127,11 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	var response csdspb_v2.ClientStatusResponse
+	var response csdspb_v3.ClientStatusResponse
 	if err = protojson.Unmarshal(responsejson, &response); err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	out := clientutil.CaptureOutput(func() {
+	out := clientUtil.CaptureOutput(func() {
 		if err := printOutResponse(&response, c.opts); err != nil {
 			t.Errorf("Print out response error: %v", err)
 		}
@@ -146,7 +146,7 @@ func TestParseResponseWithNodeId(t *testing.T) {
 	if err != nil {
 		t.Errorf("Write config to file failure: %v", err)
 	}
-	ok, err := clientutil.EqualJSONBytes(outputjson, responsejson)
+	ok, err := clientUtil.EqualJSONBytes(outputjson, responsejson)
 	if err != nil {
 		t.Errorf("failed to parse json")
 	}
@@ -162,11 +162,11 @@ func TestVisualization(t *testing.T) {
 	if err != nil {
 		t.Errorf("Read From File Failure: %v", err)
 	}
-	if err := clientutil.Visualize(responsejson, false); err != nil {
+	if err := clientUtil.Visualize(responsejson, false); err != nil {
 		t.Errorf("Visualization Failure: %v", err)
 	}
-	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
-	if err := clientutil.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
+	want := "digraph G {rankdir=LR;\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_cds_0\\\"->\\\"EDS0\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"EDS0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=EDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_cds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_cds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_rds_0\\\" [ color=\\\"#EA4335\\\", fillcolor=\\\"#EA4335\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_rds_1\\\" [ color=\\\"#EA4335\\\", fillcolor=\\\"#EA4335\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"filled,rounded\\\" ];}"
+	if err := clientUtil.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
 		t.Errorf("Open want graph failure: %v", err)
 	}
 }

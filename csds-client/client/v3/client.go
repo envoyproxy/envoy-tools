@@ -1,4 +1,4 @@
-// Package client/v2 implements the client interface for v2 transport api version
+// Package client/v3 implements the client interface for v3 transport api version
 package client
 
 import (
@@ -12,20 +12,20 @@ import (
 	"strings"
 	"time"
 
-	csdspb_v2 "github.com/envoyproxy/go-control-plane/envoy/service/status/v2"
-	envoy_type_matcher_v2 "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	csdspb_v3 "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
+	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
-// ClientV2 implements the Client interface
-type ClientV2 struct {
+// ClientV3 implements the Client interface
+type ClientV3 struct {
 	clientConn *grpc.ClientConn
-	csdsClient csdspb_v2.ClientStatusDiscoveryServiceClient
+	csdsClient csdspb_v3.ClientStatusDiscoveryServiceClient
 
-	nodeMatcher []*envoy_type_matcher_v2.NodeMatcher
+	nodeMatcher []*envoy_type_matcher_v3.NodeMatcher
 	metadata    metadata.MD
 	opts        client.ClientOptions
 }
@@ -39,12 +39,12 @@ const (
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
 // if -request_file and -request_yaml are both set, the values in this yaml string will override and
 // merge with the request loaded from -request_file
-func (c *ClientV2) parseNodeMatcher() error {
+func (c *ClientV3) parseNodeMatcher() error {
 	if c.opts.RequestFile == "" && c.opts.RequestYaml == "" {
 		return errors.New("missing request yaml")
 	}
 
-	var nodematchers []*envoy_type_matcher_v2.NodeMatcher
+	var nodematchers []*envoy_type_matcher_v3.NodeMatcher
 	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (c *ClientV2) parseNodeMatcher() error {
 }
 
 // connWithAuth connects to uri with authentication
-func (c *ClientV2) connWithAuth() error {
+func (c *ClientV3) connWithAuth() error {
 	var err error
 	switch c.opts.AuthnMode {
 	case "jwt":
@@ -103,9 +103,9 @@ func (c *ClientV2) connWithAuth() error {
 	}
 }
 
-// New creates a new client with v2 api version
-func New(option client.ClientOptions) (*ClientV2, error) {
-	c := &ClientV2{
+// New creates a new client with v3 api version
+func New(option client.ClientOptions) (*ClientV3, error) {
+	c := &ClientV3{
 		opts: option,
 	}
 	if c.opts.Platform != "gcp" {
@@ -120,13 +120,13 @@ func New(option client.ClientOptions) (*ClientV2, error) {
 }
 
 // Run connects the client to the uri and calls doRequest
-func (c *ClientV2) Run() error {
+func (c *ClientV3) Run() error {
 	if err := c.connWithAuth(); err != nil {
 		return err
 	}
 	defer c.clientConn.Close()
 
-	c.csdsClient = csdspb_v2.NewClientStatusDiscoveryServiceClient(c.clientConn)
+	c.csdsClient = csdspb_v3.NewClientStatusDiscoveryServiceClient(c.clientConn)
 	var ctx context.Context
 	if c.metadata != nil {
 		ctx = metadata.NewOutgoingContext(context.Background(), c.metadata)
@@ -166,9 +166,9 @@ func (c *ClientV2) Run() error {
 }
 
 // doRequest sends request and prints out the parsed response
-func (c *ClientV2) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryService_StreamClientStatusClient) error {
+func (c *ClientV3) doRequest(streamClientStatus csdspb_v3.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
-	req := &csdspb_v2.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
+	req := &csdspb_v3.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
 	if err := streamClientStatus.Send(req); err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (c *ClientV2) doRequest(streamClientStatus csdspb_v2.ClientStatusDiscoveryS
 }
 
 // parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
+func parseConfigStatus(xdsConfig []*csdspb_v3.PerXdsConfig) []string {
 	var configStatus []string
 	for _, perXdsConfig := range xdsConfig {
 		status := perXdsConfig.GetStatus().String()
@@ -199,6 +199,8 @@ func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 			xds = "RDS"
 		} else if perXdsConfig.GetScopedRouteConfig() != nil {
 			xds = "SRDS"
+		} else if perXdsConfig.GetEndpointConfig() != nil {
+			xds = "EDS"
 		}
 		if status != "" && xds != "" {
 			configStatus = append(configStatus, xds+"   "+status)
@@ -208,7 +210,7 @@ func parseConfigStatus(xdsConfig []*csdspb_v2.PerXdsConfig) []string {
 }
 
 // printOutResponse processes response and print
-func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.ClientOptions) error {
+func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.ClientOptions) error {
 	if response.GetConfig() == nil || len(response.GetConfig()) == 0 {
 		fmt.Printf("No xDS clients connected.\n")
 		return nil
@@ -265,7 +267,7 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.Clie
 }
 
 // parseYaml is a helper method for parsing csds request yaml to NodeMatchers
-func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMatcher) error {
+func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher) error {
 	if path != "" {
 		data, err := clientutil.ParseYamlFileToMap(path)
 		if err != nil {
@@ -274,7 +276,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMa
 
 		// parse each json object to proto
 		for _, n := range data["node_matchers"].([]interface{}) {
-			x := &envoy_type_matcher_v2.NodeMatcher{}
+			x := &envoy_type_matcher_v3.NodeMatcher{}
 
 			jsonString, err := json.Marshal(n)
 			if err != nil {
@@ -294,7 +296,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMa
 
 		// parse each json object to proto
 		for i, n := range data["node_matchers"].([]interface{}) {
-			x := &envoy_type_matcher_v2.NodeMatcher{}
+			x := &envoy_type_matcher_v3.NodeMatcher{}
 
 			jsonString, err := json.Marshal(n)
 			if err != nil {
@@ -316,7 +318,7 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v2.NodeMa
 }
 
 // getValueByKeyFromNodeMatcher gets the first value by key from the metadata of a set of NodeMatchers
-func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher_v2.NodeMatcher, key string) string {
+func getValueByKeyFromNodeMatcher(nms []*envoy_type_matcher_v3.NodeMatcher, key string) string {
 	for _, nm := range nms {
 		for _, mt := range nm.NodeMetadatas {
 			for _, path := range mt.Path {
