@@ -19,6 +19,7 @@ import (
 	"github.com/awalterschulze/gographviz"
 	"github.com/emirpasic/gods/sets/treeset"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_config_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_config_filter_http_cors_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/cors/v2"
@@ -27,6 +28,7 @@ import (
 	envoy_config_filter_network_http_connection_manager_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_extensions_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	envoy_extensions_filters_http_cors_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
 	envoy_extensions_filters_http_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	envoy_extensions_filters_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
@@ -37,6 +39,7 @@ import (
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
@@ -114,8 +117,15 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 	case "type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors":
 		cors := envoy_extensions_filters_http_cors_v3.Cors{}
 		return cors.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.config.accesslog.v2.FileAccessLog":
+		fileAccessLog := envoy_config_accesslog_v2.FileAccessLog{}
+		return fileAccessLog.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog":
+		fileAccessLog := envoy_extensions_accesslog_v3.FileAccessLog{}
+		return fileAccessLog.ProtoReflect().Type(), nil
 	default:
-		return nil, protoregistry.NotFound
+		dummy :=  anypb.Any{}
+		return dummy.ProtoReflect().Type(), nil
 	}
 }
 
