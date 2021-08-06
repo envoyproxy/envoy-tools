@@ -39,9 +39,9 @@ import (
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // IsJson checks if str is a valid json format string
@@ -124,7 +124,7 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 		fileAccessLog := envoy_extensions_accesslog_v3.FileAccessLog{}
 		return fileAccessLog.ProtoReflect().Type(), nil
 	default:
-		dummy :=  anypb.Any{}
+		dummy := anypb.Any{}
 		return dummy.ProtoReflect().Type(), nil
 	}
 }
