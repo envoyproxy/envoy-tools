@@ -170,3 +170,32 @@ func TestVisualization(t *testing.T) {
 		t.Errorf("Open want graph failure: %v", err)
 	}
 }
+
+// TestNodeIdPrefixFilter tests node_id prefix filter
+func TestNodeIdPrefixFilter(t *testing.T) {
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:      "gcp",
+			FilterMode:    "prefix",
+			FilterPattern: "test",
+		},
+	}
+	filename, _ := filepath.Abs("./response_for_filter.json")
+	responsejson, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	var response csdspb_v2.ClientStatusResponse
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	out := clientutil.CaptureOutput(func() {
+		if err := printOutResponse(&response, c.opts); err != nil {
+			t.Errorf("Print out response error: %v", err)
+		}
+	})
+	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	if out != want {
+		t.Errorf("want\n%vout\n%v", want, out)
+	}
+}

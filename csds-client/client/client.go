@@ -17,6 +17,8 @@ type ClientOptions struct {
 	ConfigFile      string
 	MonitorInterval time.Duration
 	Visualization   bool
+	FilterMode      string
+	FilterPattern   string
 }
 
 // Client implements CSDS Client of a particular version. Upon creation of the new client it is

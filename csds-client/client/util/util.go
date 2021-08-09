@@ -13,8 +13,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/awalterschulze/gographviz"
 	"github.com/emirpasic/gods/sets/treeset"
@@ -466,4 +468,24 @@ func ParseYamlStrToMap(yamlStr string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func FilterNodeId(id string, filterMode string, filterPattern string) (bool, error) {
+	switch filterMode {
+	case "prefix":
+		if strings.HasPrefix(id, filterPattern) {
+			return true, nil
+		}
+	case "suffix":
+		if strings.HasSuffix(id, filterPattern) {
+			return true, nil
+		}
+	case "regex":
+		matched, err := regexp.MatchString(filterPattern, id)
+		if err != nil {
+			return false, err
+		}
+		return matched, nil
+	}
+	return false, nil
 }

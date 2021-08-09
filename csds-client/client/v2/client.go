@@ -230,6 +230,17 @@ func printOutResponse(response *csdspb_v2.ClientStatusResponse, opts client.Clie
 			if metadata["XDS_STREAM_TYPE"] != nil {
 				xdsType = metadata["XDS_STREAM_TYPE"].(string)
 			}
+
+			// filter node id
+			if opts.FilterPattern != "" {
+				matched, err := clientutil.FilterNodeId(id, opts.FilterMode, opts.FilterPattern)
+				if err != nil {
+					return err
+				}
+				if !matched {
+					continue
+				}
+			}
 		}
 
 		if config.GetXdsConfig() == nil {

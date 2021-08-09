@@ -20,6 +20,8 @@ var jwt string
 var configFile string
 var monitorInterval time.Duration
 var visualization bool
+var filterMode string
+var filterPattern string
 
 // const default values for flag vars
 const (
@@ -33,6 +35,8 @@ const (
 	configFileDefault      string        = ""
 	monitorIntervalDefault time.Duration = 0
 	visualizationDefault   bool          = false
+	filterModeDefault      string        = "prefix"
+	filterPatternDefault   string        = ""
 )
 
 // init binds flags with variables
@@ -47,6 +51,8 @@ func init() {
 	flag.StringVar(&configFile, "output_file", configFileDefault, "file name to save configs returned by csds response")
 	flag.DurationVar(&monitorInterval, "monitor_interval", monitorIntervalDefault, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 	flag.BoolVar(&visualization, "visualization", visualizationDefault, "option to visualize the relationship between xDS")
+	flag.StringVar(&filterMode, "filter_mode", filterModeDefault, "node id filter (e.g. prefix, suffix, regex, ...)")
+	flag.StringVar(&filterPattern, "filter_pattern", filterPatternDefault, "node id filter pattern")
 }
 
 func main() {
@@ -62,6 +68,8 @@ func main() {
 		ConfigFile:      configFile,
 		MonitorInterval: monitorInterval,
 		Visualization:   visualization,
+		FilterMode:      filterMode,
+		FilterPattern:   filterPattern,
 	}
 
 	var c client.Client
