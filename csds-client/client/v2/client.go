@@ -64,6 +64,10 @@ func (c *ClientV2) parseNodeMatcher() error {
 		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 	}
 
+	if c.opts.FilterMode != "prefix" && c.opts.FilterMode != "suffix" && c.opts.FilterMode != "regex" {
+		return fmt.Errorf("%s filter mode is not supported, list of supported filter modes: prefix, suffix, regex", c.opts.FilterMode)
+	}
+
 	return nil
 }
 
