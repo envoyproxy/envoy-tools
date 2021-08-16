@@ -108,7 +108,11 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_1                                        test_stream_type1              N/A                            
+test_node_2                                        test_stream_type2              N/A                            
+test_node_3                                        test_stream_type3              N/A                            
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
@@ -136,7 +140,11 @@ func TestParseResponseWithNodeId(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_nodeid                                        test_stream_type1              RDS   STALE                    \n                                                                                  CDS   STALE                    \nConfig has been saved to test_config.json\n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_nodeid                                        test_stream_type1              RDS   STALE                    
+                                                                                  CDS   STALE                    
+Config has been saved to test_config.json
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
@@ -165,7 +173,21 @@ func TestVisualization(t *testing.T) {
 	if err := clientUtil.Visualize(responsejson, false); err != nil {
 		t.Errorf("Visualization Failure: %v", err)
 	}
-	want := "digraph G {\nrankdir=LR;\n\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\n\\\"test_cds_0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_cds_1\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\\\"test_rds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"\"filled,rounded\"\\\" ];\n\n}\n"
+	want := `digraph G {
+rankdir=LR;
+"test_lds_0"->"test_rds_0"[ arrowsize=0.3, penwidth=0.3 ];
+"test_lds_0"->"test_rds_1"[ arrowsize=0.3, penwidth=0.3 ];
+"test_rds_0"->"test_cds_0"[ arrowsize=0.3, penwidth=0.3 ];
+"test_rds_0"->"test_cds_1"[ arrowsize=0.3, penwidth=0.3 ];
+"test_rds_1"->"test_cds_1"[ arrowsize=0.3, penwidth=0.3 ];
+"test_cds_0" [ color="#34A853", fillcolor="#34A853", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style="filled,rounded" ];
+"test_cds_1" [ color="#34A853", fillcolor="#34A853", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style="filled,rounded" ];
+"test_lds_0" [ color="#4285F4", fillcolor="#4285F4", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style="filled,rounded" ];
+"test_rds_0" [ color="#FBBC04", fillcolor="#FBBC04", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style="filled,rounded" ];
+"test_rds_1" [ color="#FBBC04", fillcolor="#FBBC04", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style="filled,rounded" ];
+
+}
+`
 	if err := clientUtil.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
 		t.Errorf("Open want graph failure: %v", err)
 	}
@@ -194,7 +216,11 @@ func TestNodeIdPrefixFilter(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_1                                        test_stream_type1              N/A                            
+test_node_2                                        test_stream_type2              N/A                            
+test_node_3                                        test_stream_type3              N/A                            
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
@@ -223,7 +249,10 @@ func TestNodeIdSuffixFilter(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_3                                        test_stream_type3              N/A                            \nnode_3                                             test_stream_type4              N/A                            \n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_3                                        test_stream_type3              N/A                            
+node_3                                             test_stream_type4              N/A                            
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
@@ -252,7 +281,11 @@ func TestNodeIdRegexFilter(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_1                                        test_stream_type1              N/A                            
+test_node_2                                        test_stream_type2              N/A                            
+test_node_3                                        test_stream_type3              N/A                            
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
