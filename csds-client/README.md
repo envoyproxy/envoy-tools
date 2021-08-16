@@ -66,7 +66,7 @@ Common options are exposed/controlled via command line flags, while control plan
    * If **the visualization mode** and **the monitor mode** are enabled together, the client will only save graph dot data for the latest response without opening the browser to avoid frequent pop-ups of the browser due to short monitor interval.
 * ***-filter_mode***: the filter mode for the filter on Client ID to be returned (e.g. prefix, suffix, regex, ...)
    * If this flag is not specified, all Client ID will be returned.
-* ***-filter_pattern***: the filter pattern for the filter on xDS nodes to be returned
+* ***-filter_pattern***: the filter pattern for the filter on Client ID to be returned
    * This flag works with ***-filter_mode*** together.
 
 ## Output
