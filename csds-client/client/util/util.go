@@ -13,8 +13,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/awalterschulze/gographviz"
 	"github.com/emirpasic/gods/sets/treeset"
@@ -39,9 +41,9 @@ import (
 	"google.golang.org/grpc/credentials/oauth"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // IsJson checks if str is a valid json format string
@@ -124,7 +126,7 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 		fileAccessLog := envoy_extensions_accesslog_v3.FileAccessLog{}
 		return fileAccessLog.ProtoReflect().Type(), nil
 	default:
-		dummy :=  anypb.Any{}
+		dummy := anypb.Any{}
 		return dummy.ProtoReflect().Type(), nil
 	}
 }
@@ -466,4 +468,24 @@ func ParseYamlStrToMap(yamlStr string) (map[string]interface{}, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func FilterNodeId(id string, filterMode string, filterPattern string) (bool, error) {
+	switch filterMode {
+	case "prefix":
+		if strings.HasPrefix(id, filterPattern) {
+			return true, nil
+		}
+	case "suffix":
+		if strings.HasSuffix(id, filterPattern) {
+			return true, nil
+		}
+	case "regex":
+		matched, err := regexp.MatchString(filterPattern, id)
+		if err != nil {
+			return false, err
+		}
+		return matched, nil
+	}
+	return false, nil
 }

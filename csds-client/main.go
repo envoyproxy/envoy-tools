@@ -20,6 +20,8 @@ var jwt string
 var configFile string
 var monitorInterval time.Duration
 var visualization bool
+var filterMode string
+var filterPattern string
 
 // const default values for flag vars
 const (
@@ -33,6 +35,8 @@ const (
 	configFileDefault      string        = ""
 	monitorIntervalDefault time.Duration = 0
 	visualizationDefault   bool          = false
+	filterModeDefault      string        = ""
+	filterPatternDefault   string        = ""
 )
 
 // init binds flags with variables
@@ -40,13 +44,15 @@ func init() {
 	flag.StringVar(&uri, "service_uri", uriDefault, "the uri of the service to connect to")
 	flag.StringVar(&platform, "platform", platformDefault, "the platform (e.g. gcp, aws,  ...)")
 	flag.StringVar(&authnMode, "authn_mode", authnModeDefault, "the method to use for authentication (e.g. auto, jwt, ...)")
-	flag.StringVar(&apiVersion, "api_version", apiVersionDefault, "which xds api major version to use (e.g. v2, v3 ...)")
+	flag.StringVar(&apiVersion, "api_version", apiVersionDefault, "which xds api major version to use (e.g. v2, v3, ...)")
 	flag.StringVar(&requestFile, "request_file", requestFileDefault, "yaml file that defines the csds request")
 	flag.StringVar(&requestYaml, "request_yaml", requestYamlDefault, "yaml string that defines the csds request")
 	flag.StringVar(&jwt, "jwt_file", jwtDefault, "path of the -jwt_file")
 	flag.StringVar(&configFile, "output_file", configFileDefault, "file name to save configs returned by csds response")
 	flag.DurationVar(&monitorInterval, "monitor_interval", monitorIntervalDefault, "the interval of sending request in monitor mode (e.g. 500ms, 2s, 1m ...)")
 	flag.BoolVar(&visualization, "visualization", visualizationDefault, "option to visualize the relationship between xDS")
+	flag.StringVar(&filterMode, "filter_mode", filterModeDefault, "the filter mode for the filter on xDS nodes to be returned (e.g. prefix, suffix, regex, ...)")
+	flag.StringVar(&filterPattern, "filter_pattern", filterPatternDefault, "the filter pattern for the filter on xDS nodes to be returned")
 }
 
 func main() {
@@ -62,6 +68,8 @@ func main() {
 		ConfigFile:      configFile,
 		MonitorInterval: monitorInterval,
 		Visualization:   visualization,
+		FilterMode:      filterMode,
+		FilterPattern:   filterPattern,
 	}
 
 	var c client.Client

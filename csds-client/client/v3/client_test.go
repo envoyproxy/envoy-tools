@@ -108,7 +108,11 @@ func TestParseResponseWithoutNodeId(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_node_1                                        test_stream_type1              N/A                            \ntest_node_2                                        test_stream_type2              N/A                            \ntest_node_3                                        test_stream_type3              N/A                            \n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_1                                        test_stream_type1              N/A                            
+test_node_2                                        test_stream_type2              N/A                            
+test_node_3                                        test_stream_type3              N/A                            
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
@@ -136,7 +140,11 @@ func TestParseResponseWithNodeId(t *testing.T) {
 			t.Errorf("Print out response error: %v", err)
 		}
 	})
-	want := "Client ID                                          xDS stream type                Config Status                  \ntest_nodeid                                        test_stream_type1              RDS   STALE                    \n                                                                                  CDS   STALE                    \nConfig has been saved to test_config.json\n"
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_nodeid                                        test_stream_type1              RDS   STALE                    
+                                                                                  CDS   STALE                    
+Config has been saved to test_config.json
+`
 	if out != want {
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
@@ -165,8 +173,122 @@ func TestVisualization(t *testing.T) {
 	if err := clientUtil.Visualize(responsejson, false); err != nil {
 		t.Errorf("Visualization Failure: %v", err)
 	}
-	want := "digraph G {rankdir=LR;\\\"test_lds_0\\\"->\\\"test_rds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_lds_0\\\"->\\\"test_rds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_rds_0\\\"->\\\"test_cds_0\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_rds_0\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_rds_1\\\"->\\\"test_cds_1\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"test_cds_0\\\"->\\\"EDS0\\\"[ arrowsize=0.3, penwidth=0.3 ];\\\"EDS0\\\" [ color=\\\"#34A853\\\", fillcolor=\\\"#34A853\\\", fontcolor=white, fontname=Roboto, label=EDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_cds_0\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_cds_1\\\" [ color=\\\"#FBBC04\\\", fillcolor=\\\"#FBBC04\\\", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_lds_0\\\" [ color=\\\"#4285F4\\\", fillcolor=\\\"#4285F4\\\", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_rds_0\\\" [ color=\\\"#EA4335\\\", fillcolor=\\\"#EA4335\\\", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style=\\\"filled,rounded\\\" ];\\\"test_rds_1\\\" [ color=\\\"#EA4335\\\", fillcolor=\\\"#EA4335\\\", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style=\\\"filled,rounded\\\" ];}"
+	want := `digraph G {
+rankdir=LR;
+"test_lds_0"->"test_rds_0"[ arrowsize=0.3, penwidth=0.3 ];
+"test_lds_0"->"test_rds_1"[ arrowsize=0.3, penwidth=0.3 ];
+"test_rds_0"->"test_cds_0"[ arrowsize=0.3, penwidth=0.3 ];
+"test_rds_0"->"test_cds_1"[ arrowsize=0.3, penwidth=0.3 ];
+"test_rds_1"->"test_cds_1"[ arrowsize=0.3, penwidth=0.3 ];
+"test_cds_0"->"EDS0"[ arrowsize=0.3, penwidth=0.3 ];
+"EDS0" [ color="#34A853", fillcolor="#34A853", fontcolor=white, fontname=Roboto, label=EDS0, shape=box, style="filled,rounded" ];
+"test_cds_0" [ color="#FBBC04", fillcolor="#FBBC04", fontcolor=white, fontname=Roboto, label=CDS0, shape=box, style="filled,rounded" ];
+"test_cds_1" [ color="#FBBC04", fillcolor="#FBBC04", fontcolor=white, fontname=Roboto, label=CDS1, shape=box, style="filled,rounded" ];
+"test_lds_0" [ color="#4285F4", fillcolor="#4285F4", fontcolor=white, fontname=Roboto, label=LDS0, shape=box, style="filled,rounded" ];
+"test_rds_0" [ color="#EA4335", fillcolor="#EA4335", fontcolor=white, fontname=Roboto, label=RDS0, shape=box, style="filled,rounded" ];
+"test_rds_1" [ color="#EA4335", fillcolor="#EA4335", fontcolor=white, fontname=Roboto, label=RDS1, shape=box, style="filled,rounded" ];
+
+}
+`
 	if err := clientUtil.OpenBrowser("http://dreampuf.github.io/GraphvizOnline/#" + want); err != nil {
 		t.Errorf("Open want graph failure: %v", err)
+	}
+}
+
+// TestNodeIdPrefixFilter tests node_id prefix filter
+func TestNodeIdPrefixFilter(t *testing.T) {
+	c := ClientV3{
+		opts: client.ClientOptions{
+			Platform:      "gcp",
+			FilterMode:    "prefix",
+			FilterPattern: "test",
+		},
+	}
+	filename, _ := filepath.Abs("./response_for_filter.json")
+	responsejson, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	var response csdspb_v3.ClientStatusResponse
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	out := clientUtil.CaptureOutput(func() {
+		if err := printOutResponse(&response, c.opts); err != nil {
+			t.Errorf("Print out response error: %v", err)
+		}
+	})
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_1                                        test_stream_type1              N/A                            
+test_node_2                                        test_stream_type2              N/A                            
+test_node_3                                        test_stream_type3              N/A                            
+`
+	if out != want {
+		t.Errorf("want\n%vout\n%v", want, out)
+	}
+}
+
+// TestNodeIdSuffixFilter tests node_id suffix filter
+func TestNodeIdSuffixFilter(t *testing.T) {
+	c := ClientV3{
+		opts: client.ClientOptions{
+			Platform:      "gcp",
+			FilterMode:    "suffix",
+			FilterPattern: "3",
+		},
+	}
+	filename, _ := filepath.Abs("./response_for_filter.json")
+	responsejson, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	var response csdspb_v3.ClientStatusResponse
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	out := clientUtil.CaptureOutput(func() {
+		if err := printOutResponse(&response, c.opts); err != nil {
+			t.Errorf("Print out response error: %v", err)
+		}
+	})
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_3                                        test_stream_type3              N/A                            
+node_3                                             test_stream_type4              N/A                            
+`
+	if out != want {
+		t.Errorf("want\n%vout\n%v", want, out)
+	}
+}
+
+// TestNodeIdRegexFilter tests node_id regex filter
+func TestNodeIdRegexFilter(t *testing.T) {
+	c := ClientV3{
+		opts: client.ClientOptions{
+			Platform:      "gcp",
+			FilterMode:    "regex",
+			FilterPattern: "test.*",
+		},
+	}
+	filename, _ := filepath.Abs("./response_for_filter.json")
+	responsejson, err := ioutil.ReadFile(filename)
+	if err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	var response csdspb_v3.ClientStatusResponse
+	if err = protojson.Unmarshal(responsejson, &response); err != nil {
+		t.Errorf("Read From File Failure: %v", err)
+	}
+	out := clientUtil.CaptureOutput(func() {
+		if err := printOutResponse(&response, c.opts); err != nil {
+			t.Errorf("Print out response error: %v", err)
+		}
+	})
+	want := `Client ID                                          xDS stream type                Config Status                  
+test_node_1                                        test_stream_type1              N/A                            
+test_node_2                                        test_stream_type2              N/A                            
+test_node_3                                        test_stream_type3              N/A                            
+`
+	if out != want {
+		t.Errorf("want\n%vout\n%v", want, out)
 	}
 }
