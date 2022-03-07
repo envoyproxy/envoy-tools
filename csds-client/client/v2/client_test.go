@@ -290,3 +290,39 @@ test_node_3                                        test_stream_type3            
 		t.Errorf("want\n%vout\n%v", want, out)
 	}
 }
+
+func TestParseNodeMatcherMeshScopeKeyWithFile(t *testing.T) {
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:    "gcp",
+			RequestFile: "./test_request_mesh_scope.yaml",
+		},
+	}
+	if err := c.parseNodeMatcher(); err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+	if c.nodeMatcher == nil {
+		t.Errorf("Parse NodeMatcher Failure!")
+	}
+	want := "{\"nodeId\":{\"exact\":\"fake_node_id\"},\"nodeMetadatas\":[{\"path\":[{\"key\":\"TRAFFICDIRECTOR_GCP_PROJECT_NUMBER\"}],\"value\":{\"stringMatch\":{\"exact\":\"fake_project_number\"}}},{\"path\":[{\"key\":\"TRAFFICDIRECTOR_MESH_SCOPE_NAME\"}],\"value\":{\"stringMatch\":{\"exact\":\"fake_mesh_scope_name\"}}}]}"
+	get, err := protojson.Marshal(c.nodeMatcher[0])
+	if err != nil {
+		t.Errorf("Parse NodeMatcher Error: %v", err)
+	}
+
+	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
+	}
+}
+
+func TestParseNodeMatcherMeshScopeAndNetworkShouldFail(t *testing.T) {
+	c := ClientV2{
+		opts: client.ClientOptions{
+			Platform:    "gcp",
+			RequestFile: "./test_request_mesh_scope_network.yaml",
+		},
+	}
+	if err := c.parseNodeMatcher(); err == nil {
+		t.Errorf("Parse NodeMatcher should fail since network name and meshScope are provided.")
+	}
+}

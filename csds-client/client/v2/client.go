@@ -34,6 +34,7 @@ type ClientV2 struct {
 const (
 	gcpProjectNumberKey string = "TRAFFICDIRECTOR_GCP_PROJECT_NUMBER"
 	gcpNetworkNameKey   string = "TRAFFICDIRECTOR_NETWORK_NAME"
+	gcpMeshScopeKey     string = "TRAFFICDIRECTOR_MESH_SCOPE_NAME"
 )
 
 // parseNodeMatcher parses the csds request yaml from -request_file and -request_yaml to nodematcher
@@ -54,11 +55,18 @@ func (c *ClientV2) parseNodeMatcher() error {
 	// check if required fields exist in NodeMatcher
 	switch c.opts.Platform {
 	case "gcp":
-		keys := []string{gcpProjectNumberKey, gcpNetworkNameKey}
-		for _, key := range keys {
-			if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, key); value == "" {
-				return fmt.Errorf("missing field %v in NodeMatcher", key)
-			}
+		// Project Number is necessary
+		if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey); value == "" {
+			return fmt.Errorf("missing field %v in NodeMatcher", gcpProjectNumberKey)
+		}
+
+		// Only one of these must be set.
+		networkNameValue := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpNetworkNameKey)
+		meshScopeValue := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpMeshScopeKey)
+		if len(networkNameValue) == 0 && len(meshScopeValue) == 0 {
+			return fmt.Errorf("must set either %v or %v", gcpNetworkNameKey, gcpMeshScopeKey)
+		} else if len(networkNameValue) > 0 && len(meshScopeValue) > 0 {
+			return fmt.Errorf("cannot set both %v or %v", gcpNetworkNameKey, gcpMeshScopeKey)
 		}
 	default:
 		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
