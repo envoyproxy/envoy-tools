@@ -1,0 +1,14 @@
+node_matchers:
+  - node_id:
+      exact: fake_node_id
+    node_metadatas:
+      - path:
+          - key: TRAFFICDIRECTOR_GCP_PROJECT_NUMBER
+        value:
+          string_match:
+            exact: fake_project_number
+      - path:
+          - key: TRAFFICDIRECTOR_MESH_SCOPE_NAME
+        value:
+          string_match:
+            exact: fake_mesh_scope_name

@@ -46,7 +46,7 @@ func ShouldEqualJSON(t *testing.T, s1, s2 string) bool {
 
 	verdict, err := EqualJSONBytes([]byte(s1), []byte(s2))
 	if err != nil {
-		t.Errorf("failed to check since: %w", err)
+		t.Errorf("failed to check since: %v", err)
 		return false
 	}
 
