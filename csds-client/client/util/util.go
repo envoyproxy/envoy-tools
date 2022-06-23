@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"envoy-tools/csds-client/client"
@@ -33,6 +34,7 @@ import (
 	envoy_extensions_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	envoy_extensions_filters_http_cors_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/cors/v3"
 	envoy_extensions_filters_http_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
+	envoy_extensions_filters_http_jwt_authn_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	envoy_extensions_filters_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/ghodss/yaml"
@@ -125,6 +127,10 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 	case "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog":
 		fileAccessLog := envoy_extensions_accesslog_v3.FileAccessLog{}
 		return fileAccessLog.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication":
+		jwtAuthn := envoy_extensions_filters_http_jwt_authn_v3.JwtAuthentication{}
+		return jwtAuthn.ProtoReflect().Type(), nil
+
 	default:
 		dummy := anypb.Any{}
 		return dummy.ProtoReflect().Type(), nil
@@ -421,6 +427,58 @@ func ConnToGCPWithAuto(uri string) (*grpc.ClientConn, error) {
 	}
 
 	return clientConn, nil
+}
+
+// ConnToXDS connects to the the given gRPC target with the provided
+// DialOptions.
+func ConnToXDS(uri string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	return grpc.Dial(uri, opts...)
+}
+
+// DialOptions parses client.ClientOptions and sets up grpc DialOption
+// to use when dialing a gRPC service.
+//
+// If no tls configuration was provided, it defaults to disabling gRPC transport
+// security.
+//
+// Otherwise, the tls configuration is used to build a TLS config to use on
+// the client connection.
+//
+// The optional HTTP/2 :authority header is set if `opts.Authority` is
+// provided.
+// The same value is also used in the ClientHello message for SNI, and to
+// verify the server name on the returned server certificate.
+func DialOptions(opts *client.ClientOptions) ([]grpc.DialOption, error) {
+	var dialOpts []grpc.DialOption
+	if opts.TLSCertFilepath != "" && opts.TLSPrivateKeyFilepath != "" {
+		clientCert, err := tls.LoadX509KeyPair(opts.TLSCertFilepath, opts.TLSPrivateKeyFilepath)
+		if err != nil {
+			return nil, fmt.Errorf("could not load client cert/key pair: %v", err)
+		}
+		tlsCfg := &tls.Config{
+			Certificates: []tls.Certificate{clientCert},
+		}
+		// Load root CAs to use when verifying server certificate.
+		if opts.TLSCACertsFilepath != "" {
+			caCertsData, err := ioutil.ReadFile(opts.TLSCACertsFilepath)
+			if err != nil {
+				return nil, fmt.Errorf("could not read CA certs file: %v", err)
+			}
+			caCertsPool := x509.NewCertPool()
+			caCertsPool.AppendCertsFromPEM(caCertsData)
+			tlsCfg.RootCAs = caCertsPool
+			if opts.Authority != "" {
+				tlsCfg.ServerName = opts.Authority
+			}
+		}
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
+	} else {
+		dialOpts = append(dialOpts, grpc.WithInsecure())
+		if opts.Authority != "" {
+			dialOpts = append(dialOpts, grpc.WithAuthority(opts.Authority))
+		}
+	}
+	return dialOpts, nil
 }
 
 // ParseYamlFileToMap parses yaml file to map

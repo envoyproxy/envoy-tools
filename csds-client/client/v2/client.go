@@ -68,8 +68,9 @@ func (c *ClientV2) parseNodeMatcher() error {
 		} else if len(networkNameValue) > 0 && len(meshScopeValue) > 0 {
 			return fmt.Errorf("cannot set both %v or %v", gcpNetworkNameKey, gcpMeshScopeKey)
 		}
+	case "go":
 	default:
-		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
+		return fmt.Errorf("%s platform is not supported. supported platforms: %v", c.opts.Platform, client.SupportedPlatforms)
 	}
 
 	if c.opts.FilterMode != "" && c.opts.FilterMode != "prefix" && c.opts.FilterMode != "suffix" && c.opts.FilterMode != "regex" {
@@ -107,6 +108,13 @@ func (c *ClientV2) connWithAuth() error {
 				return err
 			}
 			return nil
+		case "go":
+			dialOpts, err := clientutil.DialOptions(&c.opts)
+			if err != nil {
+				return fmt.Errorf("could not build gRPC client dial options: %v", err)
+			}
+			c.clientConn, err = grpc.Dial(c.opts.Uri, dialOpts...)
+			return err
 		default:
 			return errors.New("auto authentication mode for this platform is not supported. Please use jwt_file instead")
 		}
