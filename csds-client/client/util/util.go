@@ -35,6 +35,10 @@ import (
 	envoy_extensions_filters_http_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	envoy_extensions_filters_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_extensions_load_balancing_policies_least_request_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/least_request/v3"
+	envoy_extensions_load_balancing_policies_ring_hash_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/ring_hash/v3"
+	envoy_extensions_load_balancing_policies_round_robin_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/round_robin/v3"
+	envoy_extensions_load_balancing_policies_wrr_locality_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/wrr_locality/v3"
 	"github.com/ghodss/yaml"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -70,8 +74,7 @@ func (r *TypeResolver) FindMessageByName(message protoreflect.FullName) (protore
 }
 
 // FindMessageByURL links the message type url to the specific message type
-// TODO: If there's other message type can be passed in google.protobuf.Any, the typeUrl and
-//  messageType need to be added to this method to make sure it can be parsed and output correctly
+// TODO: If there's other message type can be passed in google.protobuf.Any, the typeUrl and messageType need to be added to this method to make sure it can be parsed and output correctly.
 func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
 	switch url {
 	case "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager":
@@ -125,6 +128,18 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 	case "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog":
 		fileAccessLog := envoy_extensions_accesslog_v3.FileAccessLog{}
 		return fileAccessLog.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.load_balancing_policies.least_request.v3.LeastRequest":
+		leastRequest := envoy_extensions_load_balancing_policies_least_request_v3.LeastRequest{}
+		return leastRequest.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.load_balancing_policies.ring_hash.v3.RingHash":
+		ringHash := envoy_extensions_load_balancing_policies_ring_hash_v3.RingHash{}
+		return ringHash.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.load_balancing_policies.round_robin.v3.RoundRobin":
+		roundRobin := envoy_extensions_load_balancing_policies_round_robin_v3.RoundRobin{}
+		return roundRobin.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.load_balancing_policies.wrr_locality.v3.WrrLocality":
+		wrrLocality := envoy_extensions_load_balancing_policies_wrr_locality_v3.WrrLocality{}
+		return wrrLocality.ProtoReflect().Type(), nil
 	default:
 		dummy := anypb.Any{}
 		return dummy.ProtoReflect().Type(), nil
@@ -322,8 +337,7 @@ func GenerateGraph(data GraphData) (string, error) {
 }
 
 // OpenBrowser opens url in browser based on platform
-// TODO: the url cannot be passed correctly on some platforms because of \" and ",
-//  which need to be solve in the future.
+// TODO: the url cannot be passed correctly on some platforms because of \" and ", which need to be solve in the future.
 func OpenBrowser(url string) error {
 	var err error
 	switch runtime.GOOS {
