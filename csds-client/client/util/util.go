@@ -39,6 +39,7 @@ import (
 	envoy_extensions_load_balancing_policies_ring_hash_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/ring_hash/v3"
 	envoy_extensions_load_balancing_policies_round_robin_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/round_robin/v3"
 	envoy_extensions_load_balancing_policies_wrr_locality_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/wrr_locality/v3"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/ghodss/yaml"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -140,6 +141,12 @@ func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, e
 	case "type.googleapis.com/envoy.extensions.load_balancing_policies.wrr_locality.v3.WrrLocality":
 		wrrLocality := envoy_extensions_load_balancing_policies_wrr_locality_v3.WrrLocality{}
 		return wrrLocality.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext":
+		upstreamTlsContext := envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext{}
+		return upstreamTlsContext.ProtoReflect().Type(), nil
+	case "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext":
+		downstreamTlsContext := envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{}
+		return downstreamTlsContext.ProtoReflect().Type(), nil
 	default:
 		dummy := anypb.Any{}
 		return dummy.ProtoReflect().Type(), nil
