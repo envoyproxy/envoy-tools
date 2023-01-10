@@ -35,6 +35,7 @@ import (
 	envoy_extensions_filters_http_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	envoy_extensions_filters_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	envoy_extensions_filters_network_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_extensions_load_balancing_policies_least_request_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/least_request/v3"
 	envoy_extensions_load_balancing_policies_ring_hash_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/ring_hash/v3"
 	envoy_extensions_load_balancing_policies_round_robin_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/load_balancing_policies/round_robin/v3"
@@ -78,6 +79,9 @@ func (r *TypeResolver) FindMessageByName(message protoreflect.FullName) (protore
 // TODO: If there's other message type can be passed in google.protobuf.Any, the typeUrl and messageType need to be added to this method to make sure it can be parsed and output correctly.
 func (r *TypeResolver) FindMessageByURL(url string) (protoreflect.MessageType, error) {
 	switch url {
+	case "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy":
+		tcpProxy := envoy_extensions_filters_network_tcp_proxy_v3.TcpProxy{}
+		return tcpProxy.ProtoReflect().Type(), nil
 	case "type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager":
 		httpConnectionManager := envoy_config_filter_network_http_connection_manager_v2.HttpConnectionManager{}
 		return httpConnectionManager.ProtoReflect().Type(), nil
