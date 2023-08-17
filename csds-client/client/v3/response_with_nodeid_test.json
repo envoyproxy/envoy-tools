@@ -9,32 +9,29 @@
           "XDS_STREAM_TYPE": "test_stream_type1"
         }
       },
-      "xdsConfig": [
+      "genericXdsConfigs": [
         {
-          "status": "STALE",
-          "routeConfig": {
-            "dynamicRouteConfigs": [
-              {
-                "versionInfo": "fake_route_version1"
-              },
-              {
-                "versionInfo": "fake_route_version2"
-              }
-            ]
-          }
+          "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+          "name":  "fake_route",
+          "versionInfo":  "fake_route_version1",
+          "xdsConfig":  {
+            "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+            "name":  "fake_route"
+          },
+          "configStatus":  "STALE"
         },
         {
-          "status": "STALE",
-          "clusterConfig": {
-            "dynamicActiveClusters": [
-              {
-                "versionInfo": "fake_cluster_version1"
-              },
-              {
-                "versionInfo": "fake_cluster_version2"
-              }
-            ]
-          }
+          "typeUrl":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+          "name":  "fake_cluster",
+          "versionInfo":  "fake_cluster_version1",
+          "xdsConfig":  {
+            "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+            "name":  "fake_cluster",
+            "type":  "ORIGINAL_DST",
+            "connectTimeout":  "5s",
+            "lbPolicy":  "CLUSTER_PROVIDED"
+          },
+          "configStatus":  "STALE"
         }
       ]
     }

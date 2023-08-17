@@ -1,3 +1,5 @@
+node:
+  id: fake_client_node_id
 node_matchers:
   - node_id:
       exact: fake_node_id
