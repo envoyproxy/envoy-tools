@@ -38,7 +38,7 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	wantNode := "{\"id\":\"fake_client_node_id\"}"
 	getNode, errNode := protojson.Marshal(&c.node)
 	if err != nil {
-		t.Errorf("Parse NodeMatcher Error: %v", errNode)
+		t.Errorf("Parse Node Error: %v", errNode)
 	}
 
 	if !clientUtil.ShouldEqualJSON(t, string(getNode), wantNode) {

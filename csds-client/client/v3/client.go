@@ -202,7 +202,7 @@ func (c *ClientV3) doRequest(streamClientStatus csdspb_v3.ClientStatusDiscoveryS
 }
 
 // parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*csdspb_v3.ClientConfig_GenericXdsConfig) []string {
+func parseConfigStatus(xdsConfig []*csdspb_v3.ClientConfig_GenericXdsConfig) ([]string, error) {
 	var configStatus []string
 	for _, genericXdsConfig := range xdsConfig {
 		status := genericXdsConfig.GetConfigStatus().String()
@@ -218,12 +218,14 @@ func parseConfigStatus(xdsConfig []*csdspb_v3.ClientConfig_GenericXdsConfig) []s
 			xds = "SRDS"
 		case "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment":
 			xds = "EDS"
+		default:
+			return nil, fmt.Errorf("Unsupported XDS type")
 		}
 		if status != "" && xds != "" {
 			configStatus = append(configStatus, xds+"   "+status)
 		}
 	}
-	return configStatus
+	return configStatus, nil
 }
 
 // printOutResponse processes response and print
@@ -270,7 +272,10 @@ func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.Clie
 			hasXdsConfig = true
 
 			// parse config status
-			configStatus := parseConfigStatus(config.GetGenericXdsConfigs())
+			configStatus, err := parseConfigStatus(config.GetGenericXdsConfigs())
+			if err != nil {
+				fmt.Printf("Unable to parse config status: %v", err)
+			}
 			fmt.Printf("%-50s %-30s ", id, xdsType)
 
 			for i := 0; i < len(configStatus); i++ {
