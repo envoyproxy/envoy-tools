@@ -35,6 +35,15 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
+	wantNode := "{\"id\":\"fake_client_node_id\"}"
+	getNode, errNode := protojson.Marshal(&c.node)
+	if err != nil {
+		t.Errorf("Parse Node Error: %v", errNode)
+	}
+
+	if !clientUtil.ShouldEqualJSON(t, string(getNode), wantNode) {
+		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(getNode), wantNode)
+	}
 }
 
 // TestParseNodeMatcherWithString tests parsing -request_yaml to nodematcher.

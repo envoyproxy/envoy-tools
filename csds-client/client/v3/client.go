@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	csdspb_v3 "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
 	envoy_type_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/grpc"
@@ -26,6 +27,7 @@ type ClientV3 struct {
 	csdsClient csdspb_v3.ClientStatusDiscoveryServiceClient
 
 	nodeMatcher []*envoy_type_matcher_v3.NodeMatcher
+	node envoy_config_core_v3.Node
 	metadata    metadata.MD
 	opts        client.ClientOptions
 }
@@ -46,11 +48,13 @@ func (c *ClientV3) parseNodeMatcher() error {
 	}
 
 	var nodematchers []*envoy_type_matcher_v3.NodeMatcher
-	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
+	var node envoy_config_core_v3.Node
+	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers, &node); err != nil {
 		return err
 	}
 
 	c.nodeMatcher = nodematchers
+	c.node = node
 
 	// check if required fields exist in NodeMatcher
 	switch c.opts.Platform {
@@ -180,7 +184,7 @@ func (c *ClientV3) Run() error {
 // doRequest sends request and prints out the parsed response
 func (c *ClientV3) doRequest(streamClientStatus csdspb_v3.ClientStatusDiscoveryService_StreamClientStatusClient) error {
 
-	req := &csdspb_v3.ClientStatusRequest{NodeMatchers: c.nodeMatcher}
+	req := &csdspb_v3.ClientStatusRequest{NodeMatchers: c.nodeMatcher, Node: &envoy_config_core_v3.Node{Id: c.node.Id}}
 	if err := streamClientStatus.Send(req); err != nil {
 		return err
 	}
@@ -198,27 +202,30 @@ func (c *ClientV3) doRequest(streamClientStatus csdspb_v3.ClientStatusDiscoveryS
 }
 
 // parseConfigStatus parses each xds config status to string
-func parseConfigStatus(xdsConfig []*csdspb_v3.PerXdsConfig) []string {
+func parseConfigStatus(xdsConfig []*csdspb_v3.ClientConfig_GenericXdsConfig) ([]string, error) {
 	var configStatus []string
-	for _, perXdsConfig := range xdsConfig {
-		status := perXdsConfig.GetStatus().String()
+	for _, genericXdsConfig := range xdsConfig {
+		status := genericXdsConfig.GetConfigStatus().String()
 		var xds string
-		if perXdsConfig.GetClusterConfig() != nil {
+		switch genericXdsConfig.GetTypeUrl() {
+		case "type.googleapis.com/envoy.config.cluster.v3.Cluster":
 			xds = "CDS"
-		} else if perXdsConfig.GetListenerConfig() != nil {
+		case "type.googleapis.com/envoy.config.listener.v3.Listener":
 			xds = "LDS"
-		} else if perXdsConfig.GetRouteConfig() != nil {
+		case "type.googleapis.com/envoy.config.route.v3.RouteConfiguration":
 			xds = "RDS"
-		} else if perXdsConfig.GetScopedRouteConfig() != nil {
+		case "type.googleapis.com/envoy.config.route.v3.ScopedRouteConfiguration":
 			xds = "SRDS"
-		} else if perXdsConfig.GetEndpointConfig() != nil {
+		case "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment":
 			xds = "EDS"
+		default:
+			return nil, fmt.Errorf("Unsupported XDS type")
 		}
 		if status != "" && xds != "" {
 			configStatus = append(configStatus, xds+"   "+status)
 		}
 	}
-	return configStatus
+	return configStatus, nil
 }
 
 // printOutResponse processes response and print
@@ -257,7 +264,7 @@ func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.Clie
 			}
 		}
 
-		if config.GetXdsConfig() == nil {
+		if config.GetGenericXdsConfigs() == nil {
 			if config.GetNode() != nil {
 				fmt.Printf("%-50s %-30s %-30s \n", id, xdsType, "N/A")
 			}
@@ -265,7 +272,10 @@ func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.Clie
 			hasXdsConfig = true
 
 			// parse config status
-			configStatus := parseConfigStatus(config.GetXdsConfig())
+			configStatus, err := parseConfigStatus(config.GetGenericXdsConfigs())
+			if err != nil {
+				fmt.Printf("Unable to parse config status: %v", err)
+			}
 			fmt.Printf("%-50s %-30s ", id, xdsType)
 
 			for i := 0; i < len(configStatus); i++ {
@@ -290,7 +300,7 @@ func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.Clie
 }
 
 // parseYaml is a helper method for parsing csds request yaml to NodeMatchers
-func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher) error {
+func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher, node *envoy_config_core_v3.Node) error {
 	if path != "" {
 		data, err := clientutil.ParseYamlFileToMap(path)
 		if err != nil {
@@ -309,6 +319,19 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMa
 				return err
 			}
 			*nms = append(*nms, x)
+		}
+
+		// Extract the node id from the request YAML
+		n := &envoy_config_core_v3.Node{}
+		if nv, ok := data["node"]; ok {
+			jsonString, err := json.Marshal(nv)
+			if err != nil {
+				return err
+			}
+			if err = protojson.Unmarshal(jsonString, n); err != nil {
+				return err
+			}
+			*node = *n
 		}
 	}
 	if yamlStr != "" {
