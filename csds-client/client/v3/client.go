@@ -49,11 +49,13 @@ func (c *ClientV3) parseNodeMatcher() error {
 	}
 
 	var nodematchers []*envoy_type_matcher_v3.NodeMatcher
-	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
+	var node envoy_config_core_v3.Node
+	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers, &node); err != nil {
 		return err
 	}
 
 	c.nodeMatcher = nodematchers
+	c.node = node
 
 	// check if required fields exist in NodeMatcher
 	switch c.opts.Platform {
@@ -309,7 +311,7 @@ func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.Clie
 }
 
 // parseYaml is a helper method for parsing csds request yaml to NodeMatchers
-func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher) error {
+func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher, node *envoy_config_core_v3.Node) error {
 	if path != "" {
 		data, err := clientutil.ParseYamlFileToMap(path)
 		if err != nil {
@@ -328,6 +330,19 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMa
 				return err
 			}
 			*nms = append(*nms, x)
+		}
+
+		// Extract the node id from the request YAML
+		n := &envoy_config_core_v3.Node{}
+		if nv, ok := data["node"]; ok {
+			jsonString, err := json.Marshal(nv)
+			if err != nil {
+				return err
+			}
+			if err = protojson.Unmarshal(jsonString, n); err != nil {
+				return err
+			}
+			*node = *n
 		}
 	}
 	if yamlStr != "" {
