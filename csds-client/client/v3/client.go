@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"github.com/google/uuid"
 )
 
 // ClientV3 implements the Client interface
@@ -48,19 +49,18 @@ func (c *ClientV3) parseNodeMatcher() error {
 	}
 
 	var nodematchers []*envoy_type_matcher_v3.NodeMatcher
-	var node envoy_config_core_v3.Node
-	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers, &node); err != nil {
+	if err := parseYaml(c.opts.RequestFile, c.opts.RequestYaml, &nodematchers); err != nil {
 		return err
 	}
 
 	c.nodeMatcher = nodematchers
-	c.node = node
 
 	// check if required fields exist in NodeMatcher
 	switch c.opts.Platform {
 	case "gcp":
 		// Project Number is necessary
-		if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey); value == "" {
+		projectNumber := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey)
+		if projectNumber == "" {
 			return fmt.Errorf("missing field %v in NodeMatcher", gcpProjectNumberKey)
 		}
 
@@ -72,6 +72,15 @@ func (c *ClientV3) parseNodeMatcher() error {
 		} else if len(networkNameValue) > 0 && len(meshScopeValue) > 0 {
 			return fmt.Errorf("cannot set both %v or %v", gcpNetworkNameKey, gcpMeshScopeKey)
 		}
+
+		meshOrNetworkName := meshScopeValue
+		if len(meshScopeValue) == 0 {
+			meshOrNetworkName = networkNameValue
+		}
+		// node.id is expected to be in the format projects/<project_id>/networks/<mesh/network_name>/nodes/<node_id>
+		// for IAM permissions. For CSDS V3 requests node_id part is randomly generated since the users aren't expected
+		// to pass a node_id.
+		c.node.Id = fmt.Sprintf("projects/%s/networks/%s/nodes/%s",projectNumber, meshOrNetworkName, uuid.New())
 	default:
 		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 	}
@@ -300,7 +309,7 @@ func printOutResponse(response *csdspb_v3.ClientStatusResponse, opts client.Clie
 }
 
 // parseYaml is a helper method for parsing csds request yaml to NodeMatchers
-func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher, node *envoy_config_core_v3.Node) error {
+func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMatcher) error {
 	if path != "" {
 		data, err := clientutil.ParseYamlFileToMap(path)
 		if err != nil {
@@ -319,19 +328,6 @@ func parseYaml(path string, yamlStr string, nms *[]*envoy_type_matcher_v3.NodeMa
 				return err
 			}
 			*nms = append(*nms, x)
-		}
-
-		// Extract the node id from the request YAML
-		n := &envoy_config_core_v3.Node{}
-		if nv, ok := data["node"]; ok {
-			jsonString, err := json.Marshal(nv)
-			if err != nil {
-				return err
-			}
-			if err = protojson.Unmarshal(jsonString, n); err != nil {
-				return err
-			}
-			*node = *n
 		}
 	}
 	if yamlStr != "" {
