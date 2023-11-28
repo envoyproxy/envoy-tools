@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+	"github.com/google/uuid"
 )
 
 // ClientV3 implements the Client interface
@@ -60,7 +61,8 @@ func (c *ClientV3) parseNodeMatcher() error {
 	switch c.opts.Platform {
 	case "gcp":
 		// Project Number is necessary
-		if value := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey); value == "" {
+		projectNumber := getValueByKeyFromNodeMatcher(c.nodeMatcher, gcpProjectNumberKey)
+		if projectNumber == "" {
 			return fmt.Errorf("missing field %v in NodeMatcher", gcpProjectNumberKey)
 		}
 
@@ -72,6 +74,15 @@ func (c *ClientV3) parseNodeMatcher() error {
 		} else if len(networkNameValue) > 0 && len(meshScopeValue) > 0 {
 			return fmt.Errorf("cannot set both %v or %v", gcpNetworkNameKey, gcpMeshScopeKey)
 		}
+
+		meshOrNetworkName := meshScopeValue
+		if len(meshScopeValue) == 0 {
+			meshOrNetworkName = networkNameValue
+		}
+		// node.id is expected to be in the format projects/<project_id>/networks/<mesh/network_name>/nodes/<node_id>
+		// for IAM permissions. For CSDS V3 requests node_id part is randomly generated since the users aren't expected
+		// to pass a node_id.
+		c.node.Id = fmt.Sprintf("projects/%s/networks/%s/nodes/%s",projectNumber, meshOrNetworkName, uuid.New())
 	default:
 		return fmt.Errorf("%s platform is not supported, list of supported platforms: gcp", c.opts.Platform)
 	}

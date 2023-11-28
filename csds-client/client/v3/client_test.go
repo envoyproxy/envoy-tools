@@ -7,9 +7,11 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"strings"
 
 	csdspb_v3 "github.com/envoyproxy/go-control-plane/envoy/service/status/v3"
 	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/google/uuid"
 )
 
 // TestParseNodeMatcherWithFile tests parsing -request_file to nodematcher.
@@ -35,14 +37,16 @@ func TestParseNodeMatcherWithFile(t *testing.T) {
 	if !clientUtil.ShouldEqualJSON(t, string(get), want) {
 		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(get), want)
 	}
-	wantNode := "{\"id\":\"fake_client_node_id\"}"
-	getNode, errNode := protojson.Marshal(&c.node)
-	if err != nil {
-		t.Errorf("Parse Node Error: %v", errNode)
+
+	wantNodeIdPrefix := "projects/fake_project_number/networks/fake_network_name/nodes"
+	nodeSlice := strings.Split(c.node.Id, "/")
+	gotNodeIdPrefix := strings.Join(nodeSlice[:len(nodeSlice)-1], "/")
+	if wantNodeIdPrefix != gotNodeIdPrefix {
+		t.Errorf("node.id prefix = %v, want = %v", gotNodeIdPrefix, wantNodeIdPrefix)
 	}
 
-	if !clientUtil.ShouldEqualJSON(t, string(getNode), wantNode) {
-		t.Errorf("NodeMatcher = \n%v\n, want: \n%v\n", string(getNode), wantNode)
+	if _, err := uuid.Parse(nodeSlice[len(nodeSlice)-1]); err != nil {
+		t.Errorf("node.id postfix isn't a valid UUID:  %v", err)
 	}
 }
 
