@@ -1,4 +1,8 @@
 name: Scorecard supply-chain security
+
+permissions:
+  contents: read
+
 on:
   branch_protection_rule:
   schedule:
@@ -6,10 +10,6 @@ on:
   push:
     branches:
     - "main"
-
-permissions:
-  contents: read
-
 
 jobs:
   analysis:
